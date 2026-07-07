@@ -14,7 +14,7 @@ export default function BattleshipSolver() {
   const [grid, setGrid] = useState<CellState[][]>(() =>
     Array(10)
       .fill(0)
-      .map(() => Array(10).fill('X')),
+      .map(() => Array(10).fill('X'))
   )
   const [selectedCell, setSelectedCell] = useState({ r: 0, c: 0 })
   const [mode, setMode] = useState<'edit' | 'calculate'>('edit')
@@ -57,7 +57,7 @@ export default function BattleshipSolver() {
           allowTouching,
           iterationsInput,
           grid,
-        }),
+        })
       )
     }
   }, [loaded, rows, cols, boatsInput, allowTouching, iterationsInput, grid])
@@ -85,14 +85,15 @@ export default function BattleshipSolver() {
   const allBoats = useMemo(() => {
     return boatsInput
       .split(',')
-      .map(s => parseInt(s.trim()))
-      .filter(n => !isNaN(n) && n > 0)
+      .map((s) => parseInt(s.trim()))
+      .filter((n) => !isNaN(n) && n > 0)
       .sort((a, b) => b - a)
   }, [boatsInput])
 
   // Detect Sunken & Compute Remaining
   const { sunkenLengths, remainingBoats, sunkenMatchedIdx } = useMemo(() => {
-    if (!grid.length || !grid[0]) return { sunkenLengths: [], remainingBoats: allBoats, sunkenMatchedIdx: new Set<number>() }
+    if (!grid.length || !grid[0])
+      return { sunkenLengths: [], remainingBoats: allBoats, sunkenMatchedIdx: new Set<number>() }
 
     const visited = new Set<string>()
     const sunken: number[] = []
@@ -158,8 +159,8 @@ export default function BattleshipSolver() {
           setMode('edit')
         }
 
-        setGrid(prev => {
-          const newGrid = prev.map(row => [...row])
+        setGrid((prev) => {
+          const newGrid = prev.map((row) => [...row])
           newGrid[r][c] = key
           return newGrid
         })
@@ -194,7 +195,7 @@ export default function BattleshipSolver() {
     setProbs(
       Array(actualRows)
         .fill(0)
-        .map(() => Array(actualCols).fill(0)),
+        .map(() => Array(actualCols).fill(0))
     )
     isCalculatingRef.current = true
 
@@ -342,7 +343,7 @@ export default function BattleshipSolver() {
       setCalcStatus({ iterations, validBoards: validBoardsCount, maxIterations })
 
       if (validBoardsCount > 0 && performance.now() - lastUpdateTime >= 200) {
-        const newProbs = heatMap.map(r => r.map(v => v / validBoardsCount))
+        const newProbs = heatMap.map((r) => r.map((v) => v / validBoardsCount))
         setProbs(newProbs)
         lastUpdateTime = performance.now()
       }
@@ -353,7 +354,7 @@ export default function BattleshipSolver() {
         setIsCalculating(false)
         isCalculatingRef.current = false
         if (validBoardsCount > 0) {
-          const finalProbs = heatMap.map(r => r.map(v => v / validBoardsCount))
+          const finalProbs = heatMap.map((r) => r.map((v) => v / validBoardsCount))
           setProbs(finalProbs)
         }
       }
@@ -374,12 +375,12 @@ export default function BattleshipSolver() {
     setGrid(
       Array(r)
         .fill(0)
-        .map(() => Array(c).fill('X')),
+        .map(() => Array(c).fill('X'))
     )
     setProbs(
       Array(r)
         .fill(0)
-        .map(() => Array(c).fill(0)),
+        .map(() => Array(c).fill(0))
     )
     setMode('edit')
     const maxIters = typeof iterationsInput === 'number' ? iterationsInput : 50000
@@ -390,8 +391,11 @@ export default function BattleshipSolver() {
     ? Math.max(
         0,
         ...probs.map((row, r) =>
-          Math.max(0, ...row.map((p, c) => (grid[r]?.[c] === 'B' || grid[r]?.[c] === 'S' || grid[r]?.[c] === 'W' ? -1 : p))),
-        ),
+          Math.max(
+            0,
+            ...row.map((p, c) => (grid[r]?.[c] === 'B' || grid[r]?.[c] === 'S' || grid[r]?.[c] === 'W' ? -1 : p))
+          )
+        )
       )
     : 0
   const minSize = Math.max(1, allBoats.length > 0 ? Math.max(...allBoats) : 1)
@@ -414,13 +418,13 @@ export default function BattleshipSolver() {
               max={20}
               value={rows === '' ? '' : rows}
               disabled={mode === 'calculate'}
-              onChange={e => {
+              onChange={(e) => {
                 if (e.target.value === '') {
                   setRows('')
                 } else {
                   const val = Math.max(minSize, Math.min(20, parseInt(e.target.value) || minSize))
                   setRows(val)
-                  setGrid(prev => resizeGrid(prev, val, typeof cols === 'number' ? cols : 10))
+                  setGrid((prev) => resizeGrid(prev, val, typeof cols === 'number' ? cols : 10))
                 }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed"
@@ -434,13 +438,13 @@ export default function BattleshipSolver() {
               max={20}
               value={cols === '' ? '' : cols}
               disabled={mode === 'calculate'}
-              onChange={e => {
+              onChange={(e) => {
                 if (e.target.value === '') {
                   setCols('')
                 } else {
                   const val = Math.max(minSize, Math.min(20, parseInt(e.target.value) || minSize))
                   setCols(val)
-                  setGrid(prev => resizeGrid(prev, typeof rows === 'number' ? rows : 10, val))
+                  setGrid((prev) => resizeGrid(prev, typeof rows === 'number' ? rows : 10, val))
                 }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed"
@@ -452,7 +456,7 @@ export default function BattleshipSolver() {
               type="text"
               value={boatsInput}
               disabled={mode === 'calculate'}
-              onChange={e => setBoatsInput(e.target.value)}
+              onChange={(e) => setBoatsInput(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed"
               placeholder="e.g. 5,4,3,3,2,2"
             />
@@ -465,7 +469,7 @@ export default function BattleshipSolver() {
               max={1000000}
               value={iterationsInput}
               disabled={mode === 'calculate'}
-              onChange={e => {
+              onChange={(e) => {
                 setIterationsInput(e.target.value)
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed"
@@ -478,13 +482,12 @@ export default function BattleshipSolver() {
             id="allowTouching"
             checked={allowTouching}
             disabled={mode === 'calculate'}
-            onChange={e => setAllowTouching(e.target.checked)}
+            onChange={(e) => setAllowTouching(e.target.checked)}
             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <label
             htmlFor="allowTouching"
-            className={`text-sm text-gray-700 font-medium select-none ${mode === 'calculate' ? 'opacity-50' : ''}`}
-          >
+            className={`text-sm text-gray-700 font-medium select-none ${mode === 'calculate' ? 'opacity-50' : ''}`}>
             Allow ships to touch (disable strict Battleship spacing)
           </label>
         </div>
@@ -564,8 +567,7 @@ export default function BattleshipSolver() {
                         ${mode === 'edit' ? (cell === 'X' ? 'hover:bg-gray-100' : 'hover:brightness-95') : ''}
                         ${mode === 'calculate' && prob > 0.5 && cell !== 'S' && cell !== 'B' ? 'text-white' : 'text-gray-900'}
                       `}
-                      style={{ backgroundColor: getBgColor() }}
-                    >
+                      style={{ backgroundColor: getBgColor() }}>
                       {content}
                     </div>
                   )
@@ -580,23 +582,20 @@ export default function BattleshipSolver() {
             {mode === 'edit' ? (
               <button
                 onClick={startCalculation}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors"
-              >
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors">
                 <Play className="w-5 h-5" /> Calculate Probabilities
               </button>
             ) : (
               <button
                 onClick={handleEdit}
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors"
-              >
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors">
                 <Edit2 className="w-5 h-5" /> Back to Edit Mode
               </button>
             )}
             <button
               onClick={clearGrid}
               disabled={isCalculating}
-              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors disabled:opacity-50"
-            >
+              className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-xl shadow-sm transition-colors disabled:opacity-50">
               <RotateCcw className="w-5 h-5" /> Clear Grid
             </button>
           </div>
@@ -615,34 +614,39 @@ export default function BattleshipSolver() {
                     .map((_, i) => (
                       <div
                         key={i}
-                        className={`w-4 h-4 bg-gray-800 ${i === 0 ? 'rounded-l-full' : i === len - 1 ? 'rounded-r-full' : ''}`}
-                      ></div>
+                        className={`w-4 h-4 bg-gray-800 ${i === 0 ? 'rounded-l-full' : i === len - 1 ? 'rounded-r-full' : ''}`}></div>
                     ))
                 } else {
                   for (let i = 0; i < 4; i++) {
-                    squares.push(<div key={i} className={`w-4 h-4 bg-gray-800 ${i === 0 ? 'rounded-l-full' : ''}`}></div>)
+                    squares.push(
+                      <div key={i} className={`w-4 h-4 bg-gray-800 ${i === 0 ? 'rounded-l-full' : ''}`}></div>
+                    )
                   }
                   squares.push(
                     <div
                       key="ellipsis"
-                      className="w-4 h-4 flex items-center justify-center text-gray-500 text-xs tracking-widest leading-none"
-                    >
+                      className="w-4 h-4 flex items-center justify-center text-gray-500 text-xs tracking-widest leading-none">
                       ...
-                    </div>,
+                    </div>
                   )
                   for (let i = 0; i < 4; i++) {
-                    squares.push(<div key={len - 4 + i} className={`w-4 h-4 bg-gray-800 ${i === 3 ? 'rounded-r-full' : ''}`}></div>)
+                    squares.push(
+                      <div key={len - 4 + i} className={`w-4 h-4 bg-gray-800 ${i === 3 ? 'rounded-r-full' : ''}`}></div>
+                    )
                   }
                 }
 
                 return (
                   <div
                     key={idx}
-                    className={`flex items-center gap-1 transition-opacity duration-300 ${isSunken ? 'opacity-30' : 'opacity-100'}`}
-                  >
+                    className={`flex items-center gap-1 transition-opacity duration-300 ${isSunken ? 'opacity-30' : 'opacity-100'}`}>
                     <div className="flex gap-[1px]">{squares}</div>
                     <span className="text-xs font-mono font-semibold text-gray-500 ml-2">{len}</span>
-                    {isSunken && <span className="text-xs text-red-600 font-semibold ml-auto uppercase tracking-wider">Sunken</span>}
+                    {isSunken && (
+                      <span className="text-xs text-red-600 font-semibold ml-auto uppercase tracking-wider">
+                        Sunken
+                      </span>
+                    )}
                   </div>
                 )
               })}
@@ -662,12 +666,13 @@ export default function BattleshipSolver() {
               <div className="w-full bg-gray-100 rounded-full h-2.5 mb-4 border border-gray-200 overflow-hidden">
                 <div
                   className="bg-blue-600 h-2.5 rounded-full transition-all duration-75"
-                  style={{ width: `${(calcStatus.iterations / calcStatus.maxIterations) * 100}%` }}
-                ></div>
+                  style={{ width: `${(calcStatus.iterations / calcStatus.maxIterations) * 100}%` }}></div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Valid Configurations</span>
-                <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">{calcStatus.validBoards}</span>
+                <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                  {calcStatus.validBoards}
+                </span>
               </div>
               {!isCalculating && calcStatus.validBoards === 0 && (
                 <div className="mt-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg border border-red-100">
