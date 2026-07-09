@@ -21,10 +21,10 @@ const clearButton = document.getElementById('clear') as HTMLButtonElement
 const inputButtons = [...(document.getElementById('input') as HTMLInputElement).children]
 
 // Generation info
-const generationInfo = document.getElementById('generation')!
-const threadsData = generationInfo.querySelector('dl dd:nth-of-type(1)')!
-const timeData = generationInfo.querySelector('dl dd:nth-of-type(2)')!
-const configsData = generationInfo.querySelector('dl dd:nth-of-type(3)')!
+const generationInfo = document.getElementById('generation') as HTMLElement
+const threadsData = generationInfo.querySelector('dl dd:nth-of-type(1)') as HTMLElement
+const timeData = generationInfo.querySelector('dl dd:nth-of-type(2)') as HTMLElement
+const configsData = generationInfo.querySelector('dl dd:nth-of-type(3)') as HTMLElement
 
 // Load store into fields
 rowsInput.valueAsNumber = settingsStore.value.rows
@@ -33,10 +33,8 @@ boatsInput.value = settingsStore.value.boats.join(',')
 allowTouchingCheckbox.checked = settingsStore.value.allowTouching
 generationSecondsInput.valueAsNumber = settingsStore.value.generationSeconds
 
-threadsData.textContent = String(navigator.hardwareConcurrency)
-
 // Setup data structure
-const io = new BattleshipIO(settingsStore, gridEl, fleetEl)
+const io = new BattleshipIO(settingsStore, gridEl, fleetEl, { threadsData, timeData, configsData })
 
 // Settings form
 rowsInput.addEventListener('change', handleDimension)
@@ -85,9 +83,7 @@ settingsForm.addEventListener('submit', (e) => {
 
   if (io.heatmap.generating) return
 
-  threadsData.textContent = String(navigator.hardwareConcurrency)
   io.heatmap.startCalculating()
-
   io.renderGrid()
   requestAnimationFrame(() => io.renderHeatmap())
 })

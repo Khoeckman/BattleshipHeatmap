@@ -20,6 +20,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   public generating = false
   public generationSeconds: number
   public generationTimeoutId: number = -1
+  public generationStartTs: number = 0
 
   constructor(grid: BattleshipGrid, generationSeconds: number) {
     if (!(grid instanceof BattleshipGrid)) {
@@ -78,6 +79,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (this.generating) return
 
     this.generating = true
+    this.generationStartTs = performance.now()
     this.resetHeatmap()
 
     // Keep generating until timeout fires

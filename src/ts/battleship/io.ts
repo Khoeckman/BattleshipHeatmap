@@ -29,11 +29,17 @@ export default class BattleshipIO {
   public settingsStore: HyperStorage<Settings>
   public gridEl: HTMLElement
   public fleetEl: HTMLElement
+  public dataEls: { threadsData: HTMLElement; timeData: HTMLElement; configsData: HTMLElement }
   public heatmap: BattleshipHeatmap
 
   public cursor = { row: 0, col: 0 }
 
-  constructor(settingsStore: HyperStorage<Settings>, gridEl: HTMLElement, fleetEl: HTMLElement) {
+  constructor(
+    settingsStore: HyperStorage<Settings>,
+    gridEl: HTMLElement,
+    fleetEl: HTMLElement,
+    dataEls: { threadsData: HTMLElement; timeData: HTMLElement; configsData: HTMLElement }
+  ) {
     if (!(settingsStore instanceof HyperStorage)) {
       throw new TypeError('settingsStore must be an instance of HyperStorage')
     }
@@ -48,6 +54,9 @@ export default class BattleshipIO {
       throw new TypeError('fleetEl must be an instance of HTMLElement')
     }
     this.fleetEl = fleetEl
+
+    this.dataEls = dataEls
+    this.dataEls.threadsData.textContent = String(navigator.hardwareConcurrency)
 
     // Load settings into data structure
     const settings = this.settingsStore.value
@@ -129,6 +138,11 @@ export default class BattleshipIO {
         cellEl.style.color = heat > 0.15 ? 'white' : 'black'
       })
     })
+
+    const generationMs = performance.now() - this.heatmap.generationStartTs
+
+    this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
+    this.dataEls.configsData.innerText = String(this.heatmap.accumulated)
   }
 
   renderCursor(): void {
