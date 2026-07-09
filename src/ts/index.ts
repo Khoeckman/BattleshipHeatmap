@@ -83,9 +83,12 @@ generationSecondsInput.addEventListener('change', function () {
 settingsForm.addEventListener('submit', (e) => {
   e.preventDefault()
 
+  if (io.heatmap.generating) return
+
   threadsData.textContent = String(navigator.hardwareConcurrency)
   io.heatmap.startCalculating()
 
+  io.renderGrid()
   requestAnimationFrame(() => io.renderHeatmap())
 })
 

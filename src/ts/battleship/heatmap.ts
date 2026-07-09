@@ -48,6 +48,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return this.heatmap[row][cell] / Math.max(1, this.accumulated) // Normalize
   }
 
+  resetHeatmap(): void {
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        this.heatmap[row][col] = 0
+      }
+    }
+    this.accumulated = 0
+  }
+
   /**
    * Add the values of two heatmaps of the same size together.
    *
@@ -69,6 +78,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (this.generating) return
 
     this.generating = true
+    this.resetHeatmap()
 
     // Keep generating until timeout fires
     this.generationTimeoutId = setTimeout(() => {
@@ -87,18 +97,17 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
 
     worker.addEventListener('message', (e: MessageEvent<number[][]>) => {
+      if (!this.generating) {
+        worker.terminate()
+        return
+      }
       this.accumulateHeatmap(e.data)
-      this.#sendWork(worker)
+      this.#generateConfig(worker)
     })
-    this.#sendWork(worker)
+    this.#generateConfig(worker)
   }
 
-  #sendWork(worker: Worker): void {
-    if (!this.generating) {
-      worker.terminate()
-      return
-    }
-
+  #generateConfig(worker: Worker): void {
     worker.postMessage({
       rows: this.rows,
       cols: this.cols,

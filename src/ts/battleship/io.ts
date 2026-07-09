@@ -107,6 +107,7 @@ export default class BattleshipIO {
 
   renderHeatmap(): void {
     if (this.heatmap.generating) requestAnimationFrame(() => this.renderHeatmap())
+    else return
 
     const rows = [...this.gridEl.children] as HTMLElement[]
 
@@ -125,7 +126,7 @@ export default class BattleshipIO {
         cellEl.textContent = (heat * 100).toFixed(1)
         cellEl.classList.add('chance')
         cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${(1 - heat ** 0.5) * 100}%)`
-        cellEl.style.color = heat > 0.2 ? 'white' : 'black'
+        cellEl.style.color = heat > 0.15 ? 'white' : 'black'
       })
     })
   }
