@@ -15,7 +15,5 @@ self.onmessage = function (e) {
     .fill(0)
     .map(() => Array(cols).fill(0))
 
-  heatmap[~~(Math.random() ** 0.12 * rows)][~~(Math.random() ** 0.2 * cols)] = 1
-
   self.postMessage(heatmap)
 }

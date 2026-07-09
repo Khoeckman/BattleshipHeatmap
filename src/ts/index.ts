@@ -22,9 +22,9 @@ const inputButtons = [...(document.getElementById('input') as HTMLInputElement).
 
 // Generation info
 const generationInfo = document.getElementById('generation') as HTMLElement
-const threadsData = generationInfo.querySelector('dl dd:nth-of-type(1)') as HTMLElement
-const timeData = generationInfo.querySelector('dl dd:nth-of-type(2)') as HTMLElement
-const configsData = generationInfo.querySelector('dl dd:nth-of-type(3)') as HTMLElement
+const threadsData = generationInfo.querySelector('dl div:nth-child(1)  dd') as HTMLElement
+const timeData = generationInfo.querySelector('dl div:nth-child(2)  dd') as HTMLElement
+const configsData = generationInfo.querySelector('dl div:nth-child(3)  dd') as HTMLElement
 
 // Load store into fields
 rowsInput.valueAsNumber = settingsStore.value.rows

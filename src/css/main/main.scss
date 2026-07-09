@@ -76,7 +76,7 @@ main {
     }
   }
 
-  > .container {
+  .container {
     background-color: var(--c100);
     border-radius: 1rem;
     box-shadow: 0 0 0.5rem var(--c12);
@@ -102,6 +102,7 @@ main {
 
     > div {
       display: flex;
+      flex-flow: row wrap;
       gap: 1rem;
     }
   }
@@ -152,8 +153,33 @@ main {
   #input {
     @include flex-center;
 
+    flex-flow: row wrap;
     gap: 1rem;
     list-style-type: none;
+
+    button {
+      min-width: 6rem;
+    }
+  }
+
+  #generation > dl {
+    display: flex;
+    flex-flow: row nowrap;
+    gap: 2rem;
+
+    > .wrapper {
+      text-align: center;
+      padding: 1rem;
+      min-width: 8rem;
+
+      dt {
+        font-weight: bold;
+      }
+
+      dd {
+        margin: 0;
+      }
+    }
   }
 }
 

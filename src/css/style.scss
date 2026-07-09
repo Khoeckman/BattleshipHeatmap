@@ -10,7 +10,7 @@
   @include root;
 }
 
-@media (prefers-color-scheme: light) {
+@media (prefers-color-scheme: dark) {
   :root {
     --bg: var(--black);
     --fg: var(--white);
