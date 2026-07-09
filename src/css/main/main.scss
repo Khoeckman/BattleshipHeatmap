@@ -1,8 +1,168 @@
+@use '../mixins.scss' as *;
+
 main {
   margin: 4rem 2rem;
 
   h1 {
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      'Segoe UI',
+      Helvetica,
+      Arial,
+      sans-serif,
+      'Apple Color Emoji',
+      'Segoe UI Emoji';
     text-align: center;
-    margin: 0;
+    margin-top: 0;
+  }
+
+  h3 {
+    margin: 2rem 0 0.5rem 0;
+  }
+
+  hr {
+    height: 1px;
+    background-color: var(--bg);
+    font-size: 2rem;
+    border: 0;
+  }
+
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--c72);
+    margin-bottom: 0.25rem;
+  }
+
+  input:not([type='checkbox']) {
+    background-color: var(--bg);
+    border: 1px solid var(--c12);
+    border-radius: 0.5rem;
+    color: var(--fg);
+    padding: 0.25rem 0.5rem;
+    max-width: 100%;
+  }
+
+  button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--pri);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: 0 0 0.5rem var(--c24);
+    font-weight: 600;
+    color: var(--black);
+    padding: 0.75rem 0.75rem;
+    transition:
+      filter 125ms ease-in-out,
+      transform 125ms ease-in-out;
+
+    svg {
+      width: 1rem;
+      height: 1rem;
+    }
+
+    &:hover {
+      filter: brightness(0.9);
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  > .container {
+    background-color: var(--c100);
+    border-radius: 1rem;
+    box-shadow: 0 0 0.5rem var(--c12);
+    padding: 2rem;
+  }
+
+  .wrapper {
+    overflow: auto;
+    background-color: var(--bg);
+    border-radius: 1rem;
+    box-shadow: inset 0 0 0.5rem var(--c12);
+    padding: 2rem;
+  }
+
+  #settings {
+    margin-bottom: 2rem;
+  }
+
+  #dimensions {
+    h3 {
+      margin-top: 0;
+    }
+
+    > div {
+      display: flex;
+      gap: 1rem;
+    }
+  }
+
+  #fleet {
+    @include list;
+
+    display: flex;
+    flex-flow: row wrap;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 1rem;
+
+    li {
+      @include flex-center;
+
+      gap: 1px;
+      background-color: transparent;
+      border-radius: 1rem;
+
+      div {
+        background-color: var(--c72);
+        width: 1rem;
+        height: 1rem;
+
+        &:first-child {
+          border-radius: 50% 0 0 50%;
+        }
+
+        &:last-child {
+          border-top-right-radius: 50%;
+          border-bottom-right-radius: 50%;
+        }
+
+        &.sunk {
+          background-color: var(--c24);
+        }
+      }
+    }
+  }
+
+  .actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+
+  #input {
+    @include flex-center;
+
+    gap: 1rem;
+    list-style-type: none;
+  }
+}
+
+@media (width < 30em) {
+  main {
+    margin: 2rem 1rem;
+
+    .container {
+      padding: 2rem 1rem;
+    }
   }
 }

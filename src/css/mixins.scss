@@ -6,12 +6,13 @@
   --fg: var(--black);
 
   --hue: 210;
-  --pri: hsl(var(--hue), 100%, 68%);
+  --pri: hsl(var(--hue), 100%, 62%);
 
   --c12: hsl(var(--hue), 20%, 88%);
   --c24: hsl(var(--hue), 20%, 76%);
   --c48: hsl(var(--hue), 20%, 52%);
   --c72: hsl(var(--hue), 20%, 28%);
+  --c100: #fff;
 
   --border: #00000008;
 
@@ -23,4 +24,10 @@
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+@mixin list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
 }

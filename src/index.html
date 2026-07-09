@@ -49,15 +49,17 @@
       <form id="settings" action="javascript:void(0)" novalidate>
         <h2 class="sr-only">Settings</h2>
 
-        <section>
+        <section id="dimensions">
           <h3>Grid Size</h3>
           <div>
-            <label for="rows">Rows</label>
-            <input type="number" id="rows" name="rows" min="1" max="26" value="10" />
-          </div>
-          <div>
-            <label for="cols">Columns</label>
-            <input type="number" id="cols" name="cols" min="1" max="26" value="10" />
+            <div>
+              <label for="rows">Rows</label>
+              <input type="number" id="rows" name="rows" min="1" max="26" value="10" />
+            </div>
+            <div>
+              <label for="cols">Columns</label>
+              <input type="number" id="cols" name="cols" min="1" max="26" value="10" />
+            </div>
           </div>
         </section>
 
@@ -67,6 +69,7 @@
             <label for="boats">Boat Lengths (comma separated)</label>
             <input type="text" id="boats" name="boats" placeholder="5,4,3,3,2" value="5,4,3,3,2" />
           </div>
+          <ol id="fleet" class="wrapper"></ol>
         </section>
 
         <hr>
@@ -80,19 +83,19 @@
 
         <div>
           <label for="generationSeconds">Generation time (seconds)</label>
-          <input type="number" id="generationSeconds" name="generationSeconds" min="1" value="10" />
+          <input type="number" id="generationSeconds" name="generationSeconds" min="0.1" value="5" step="0.1" />
         </div>
 
         <div class="actions">
           <button type="submit">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="inherit"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path>
             </svg>
             Generate Heatmap
           </button>
           <button type="button" id="clear">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="inherit"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 6h18"></path>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
@@ -103,9 +106,38 @@
         </div>
       </form>
 
-      <section id="grid"></section>
+      <div class="wrapper">
+        <section id="grid"></section>
+      </div>
+
+      <ul id="input">
+        <li><button>Clear</button></li>
+        <li><button>Sunk</button></li>
+        <li><button>Hit</button></li>
+        <li><button>Miss</button></li>
+      </ul>
+
+      <section id="generation">
+        <h3>Generation</h3>
+        <dl>
+          <dt>Threads</dt>
+          <dd>0</dd>
+
+          <dt>Time</dt>
+          <dd>0.0s</dd>
+
+          <dt>Configs</dt>
+          <dd>0</dd>
+        </dl>
+      </section>
     </div>
+
   </main>
+
+  <footer>
+    <p>Copyright © Kyle Hoeckman 2026, All rights reserved.</p>
+    <p>Made without AI slop</p>
+  </footer>
 </body>
 
 </html>

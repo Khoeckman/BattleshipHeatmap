@@ -7,7 +7,7 @@
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   box-shadow: 0 0 0.5rem var(--c24);
-  margin: 3rem auto;
+  margin: 0 auto;
   padding: 0.5rem;
   width: fit-content;
 
@@ -80,6 +80,10 @@
 
     &.bow-w {
       border-radius: 50% 0 0 50%;
+    }
+
+    &.chance {
+      font-size: 0.8rem;
     }
 
     &.cursor {

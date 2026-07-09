@@ -1,5 +1,4 @@
 import BattleshipGrid from './grid'
-import awaitWorker from '../worker/awaitWorker'
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   public static readonly EMPTY = 0
@@ -8,7 +7,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   public static readonly MISS = 3
 
   /** The number of valid configurations used to accumulate the heatmap */
-  private validConfigs: number = 0
+  public accumulated: number = 0
 
   /**
    * Represents the heatmap grid
@@ -16,11 +15,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * The value in each cell represents the total number of times a boat crossed
    * through that cell inside of a randomly found valid configuration.
    */
-  private heatmap: number[][] = []
+  public heatmap: number[][] = []
 
   public generating = false
   public generationSeconds: number
-  public generationTimeoutId: number | null = null
+  public generationTimeoutId: number = -1
 
   constructor(grid: BattleshipGrid, generationSeconds: number) {
     if (!(grid instanceof BattleshipGrid)) {
@@ -46,7 +45,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (row < 0 || row >= this.rows || cell < 0 || cell >= this.cols) {
       throw new RangeError('cell coordinates out of bounds')
     }
-    return this.heatmap[row][cell] / Math.max(1, this.validConfigs) // Normalize by the number of valid configurations
+    return this.heatmap[row][cell] / Math.max(1, this.accumulated) // Normalize
   }
 
   /**
@@ -54,22 +53,21 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    *
    * @param other The other heatmap to accumulate onto the current
    */
-  accumulateHeatmap(other: BattleshipHeatmap): void {
-    if (this.rows !== other.rows || this.cols !== other.cols) {
-      throw new Error('heatmaps must have the same dimensions to accumulate')
-    }
-
+  accumulateHeatmap(other: number[][]): void {
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
-        this.heatmap[row][col] += other.heatmap[row][col]
+        this.heatmap[row][col] += other[row][col]
       }
     }
+    this.accumulated++
   }
 
   /**
    * Calculate a heatmap by accumulating many random valid configurations.
    */
-  async calculateHeatmap(): Promise<void> {
+  startCalculating(): void {
+    if (this.generating) return
+
     this.generating = true
 
     // Keep generating until timeout fires
@@ -80,26 +78,32 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     for (let thread = 0; thread < navigator.hardwareConcurrency; thread++) this.#thread()
   }
 
-  async #thread(): Promise<void> {
-    while (this.generating) await this.#generateConfig()
+  stopCalculating(): void {
+    this.generating = false
+    clearTimeout(this.generationTimeoutId)
   }
 
-  /**
-   * Generate a random valid configuration of boats on the grid.
-   *
-   * @returns A BattleshipHeatmap representing a valid configuration of boats on
-   *          the grid, or false the generated configuration is invalid.
-   */
-  async #generateConfig(): Promise<void> {
-    const heatmap = new BattleshipHeatmap(this, this.generationSeconds)
-
+  async #thread(): Promise<void> {
     const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
-    worker.postMessage(heatmap)
 
-    const config = await awaitWorker<number[][] | false>(worker)
-    if (!config) return
+    worker.addEventListener('message', (e: MessageEvent<number[][]>) => {
+      this.accumulateHeatmap(e.data)
+      this.#sendWork(worker)
+    })
+    this.#sendWork(worker)
+  }
 
-    heatmap.heatmap = config
-    this.accumulateHeatmap(heatmap)
+  #sendWork(worker: Worker): void {
+    if (!this.generating) {
+      worker.terminate()
+      return
+    }
+
+    worker.postMessage({
+      rows: this.rows,
+      cols: this.cols,
+      boats: this.boats,
+      allowTouching: this.allowTouching,
+    })
   }
 }

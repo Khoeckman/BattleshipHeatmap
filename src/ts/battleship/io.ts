@@ -1,5 +1,8 @@
+import HyperStorage from 'hyperstorage-js'
+
 import BattleshipGrid from './grid'
 import BattleshipHeatmap from './heatmap'
+import type { Settings } from '../settingsStore'
 
 export default class BattleshipIO {
   private static CLUE_TEXT: { [key: number]: string } = {
@@ -16,32 +19,69 @@ export default class BattleshipIO {
     3: '~',
   }
 
-  public container: Element
+  private static BOAT_NAME: { [key: number]: string } = {
+    2: 'Destroyer',
+    3: 'Cruiser',
+    4: 'Battleship',
+    5: 'Carrier',
+  }
+
+  public settingsStore: HyperStorage<Settings>
+  public gridEl: HTMLElement
+  public fleetEl: HTMLElement
   public heatmap: BattleshipHeatmap
+
   public cursor = { row: 0, col: 0 }
 
-  constructor(container: HTMLElement, heatmap: BattleshipHeatmap) {
-    if (!(container instanceof HTMLElement)) {
-      throw new TypeError('container must be an instance of HTMLElement')
+  constructor(settingsStore: HyperStorage<Settings>, gridEl: HTMLElement, fleetEl: HTMLElement) {
+    if (!(settingsStore instanceof HyperStorage)) {
+      throw new TypeError('settingsStore must be an instance of HyperStorage')
     }
-    this.container = container
+    this.settingsStore = settingsStore
 
-    if (!(heatmap instanceof BattleshipHeatmap)) {
-      throw new TypeError('heatmap must be an instance of BattleshipHeatmap')
+    if (!(gridEl instanceof HTMLElement)) {
+      throw new TypeError('gridEl must be an instance of HTMLElement')
     }
-    this.heatmap = heatmap
+    this.gridEl = gridEl
+
+    if (!(fleetEl instanceof HTMLElement)) {
+      throw new TypeError('fleetEl must be an instance of HTMLElement')
+    }
+    this.fleetEl = fleetEl
+
+    // Load settings into data structure
+    const settings = this.settingsStore.value
+    this.heatmap = new BattleshipHeatmap(
+      new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching),
+      settings.generationSeconds
+    )
 
     this.#handleClick.bind(this)
     this.#handleKeyDown.bind(this)
 
-    container.addEventListener('click', this.#handleClick.bind(this))
+    gridEl.addEventListener('click', this.#handleClick.bind(this))
     window.addEventListener('keydown', this.#handleKeyDown.bind(this))
 
     this.renderGrid()
   }
 
+  renderFleet(): void {
+    this.fleetEl.innerHTML = ''
+
+    for (let boat of this.heatmap.boats) {
+      const boatEl = document.createElement('li')
+      if (boat >= 2 && boat <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boat]
+
+      for (let segment = 0; segment < boat; segment++) {
+        const segmentEl = document.createElement('div')
+        boatEl.appendChild(segmentEl)
+      }
+      this.fleetEl.appendChild(boatEl)
+    }
+  }
+
   renderGrid(): void {
-    this.container.innerHTML = ''
+    this.gridEl.innerHTML = ''
 
     for (let row = 0; row < this.heatmap.rows; row++) {
       const rowEl = document.createElement('div')
@@ -58,15 +98,40 @@ export default class BattleshipIO {
 
         rowEl.appendChild(cellEl)
       }
-      this.container.appendChild(rowEl)
+      this.gridEl.appendChild(rowEl)
     }
 
     // Should be rerendered because this function destroyed the cell with the 'cursor' class
     this.renderCursor()
   }
 
+  renderHeatmap(): void {
+    if (this.heatmap.generating) requestAnimationFrame(() => this.renderHeatmap())
+
+    const rows = [...this.gridEl.children] as HTMLElement[]
+
+    rows.forEach((rowEl, row) => {
+      const cells = [...rowEl.children] as HTMLElement[]
+
+      cells.forEach((cellEl, col) => {
+        if (this.heatmap.getCell(row, col) !== 0) return
+
+        const heat = this.heatmap.getHeat(row, col)
+
+        if (heat === 0) {
+          cellEl.classList = 'cell'
+          return
+        }
+        cellEl.textContent = (heat * 100).toFixed(1)
+        cellEl.classList.add('chance')
+        cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${(1 - heat ** 0.5) * 100}%)`
+        cellEl.style.color = heat > 0.2 ? 'white' : 'black'
+      })
+    })
+  }
+
   renderCursor(): void {
-    const rows = [...this.container.children]
+    const rows = [...this.gridEl.children]
 
     rows.forEach((rowEl) => {
       const cells = [...rowEl.children]
@@ -79,9 +144,7 @@ export default class BattleshipIO {
     this.cursor.row = Math.max(0, Math.min(this.cursor.row, this.heatmap.rows - 1))
     this.cursor.col = Math.max(0, Math.min(this.cursor.col, this.heatmap.cols - 1))
 
-    const cursorEl = this.container.querySelector(
-      `.cell[data-row="${this.cursor.row}"][data-col="${this.cursor.col}"]`
-    )!
+    const cursorEl = this.gridEl.querySelector(`.cell[data-row="${this.cursor.row}"][data-col="${this.cursor.col}"]`)!
     // Should error if null as it should never happen
     cursorEl.classList.add('cursor')
   }
@@ -98,12 +161,28 @@ export default class BattleshipIO {
     this.setCursor(this.cursor.row + dRow, this.cursor.col + dCol)
   }
 
+  setCursorCell(value: number): void {
+    if (!(value >= 0 && value < 4)) {
+      throw new RangeError('value must be between 0 and 3')
+    }
+    this.heatmap.generating = false
+    this.heatmap.setCell(this.cursor.row, this.cursor.col, value)
+    this.settingsStore.set('grid', this.heatmap.grid)
+    this.renderGrid()
+  }
+
   resizeGrid(rows: number, cols: number): void {
+    this.settingsStore.set('rows', rows)
+    this.settingsStore.set('cols', cols)
+
+    this.heatmap.generating = false
     this.heatmap.resize(rows, cols)
     this.renderGrid()
   }
 
   clearGrid(): void {
+    this.heatmap.generating = false
+
     const { rows, cols, boats, allowTouching, generationSeconds } = this.heatmap
     this.heatmap = new BattleshipHeatmap(new BattleshipGrid(rows, cols, boats, allowTouching), generationSeconds)
     this.renderGrid()
@@ -124,7 +203,6 @@ export default class BattleshipIO {
     if (document.activeElement !== document.body) return
 
     let preventDefault = true
-    const { row, col } = this.cursor
 
     switch (e.key) {
       case 'ArrowUp':
@@ -145,22 +223,18 @@ export default class BattleshipIO {
 
       case 'x':
       case 'Backspace':
-        this.heatmap.setCell(row, col, BattleshipHeatmap.EMPTY)
-        this.renderGrid()
+        this.setCursorCell(BattleshipHeatmap.EMPTY)
         break
       case 's':
-        this.heatmap.setCell(row, col, BattleshipHeatmap.SUNK)
+        this.setCursorCell(BattleshipHeatmap.SUNK)
         // Extra: automatically mark all adjacent HIT's as SUNK using a recursive io function
-        this.renderGrid()
         break
       case 'h':
-        this.heatmap.setCell(row, col, BattleshipHeatmap.HIT)
-        this.renderGrid()
+        this.setCursorCell(BattleshipHeatmap.HIT)
         break
       case 'm':
       case 'w':
-        this.heatmap.setCell(row, col, BattleshipHeatmap.MISS)
-        this.renderGrid()
+        this.setCursorCell(BattleshipHeatmap.MISS)
         break
       default:
         preventDefault = false
