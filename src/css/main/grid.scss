@@ -1,0 +1,90 @@
+@use '../mixins.scss' as *;
+
+#grid {
+  @include root;
+
+  background-color: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  box-shadow: 0 0 0.5rem var(--c24);
+  margin: 3rem auto;
+  padding: 0.5rem;
+  width: fit-content;
+
+  &,
+  .row {
+    @include flex-center;
+
+    flex-flow: column nowrap;
+    gap: max(3px, 0.25rem);
+  }
+
+  .row {
+    flex-flow: row nowrap;
+  }
+
+  .cell {
+    @include flex-center;
+
+    cursor: pointer;
+    background-color: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 0.25rem;
+    outline-color: var(--pri);
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 2.5rem;
+    height: 2.5rem;
+    transition:
+      background-color 125ms,
+      border-color 125ms,
+      color 125ms,
+      outline 125ms;
+
+    &:hover,
+    &:focus-visible {
+      background-color: var(--c12);
+      border-color: var(--c24);
+    }
+
+    &.sunk {
+      background-color: var(--c48);
+      color: var(--bg);
+    }
+
+    &.hit {
+      background-color: var(--error);
+      color: var(--white);
+    }
+
+    &.miss {
+      background-color: #e2f2ff;
+      color: var(--pri);
+    }
+
+    &.single {
+      border-radius: 50%;
+    }
+
+    &.bow-n {
+      border-radius: 50% 50% 0 0;
+    }
+
+    &.bow-e {
+      border-radius: 0 50% 50% 0;
+    }
+
+    &.bow-s {
+      border-radius: 0 0 50% 50%;
+    }
+
+    &.bow-w {
+      border-radius: 50% 0 0 50%;
+    }
+
+    &.cursor {
+      outline: 0.125rem solid var(--pri);
+      outline-offset: -1px;
+    }
+  }
+}

@@ -1,0 +1,51 @@
+@use './mixins.scss' as *;
+
+@use 'main/main.scss';
+@use 'main/grid.scss';
+
+@use './credits.scss';
+
+:root {
+  @include root;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: var(--black);
+    --fg: var(--white);
+
+    --c12: hsl(var(--hue), 20%, 12%);
+    --c24: hsl(var(--hue), 20%, 24%);
+    --c48: hsl(var(--hue), 20%, 48%);
+    --c72: hsl(var(--hue), 20%, 72%);
+
+    --border: #ffffff08;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--bg);
+  font-family:
+    Montserrat,
+    -apple-system,
+    BlinkMacSystemFont,
+    system-ui,
+    'Segoe UI',
+    Helvetica,
+    Arial,
+    sans-serif,
+    'Apple Color Emoji',
+    'Segoe UI Emoji';
+  font-size: 16px;
+  color: var(--fg);
+  min-height: 100dvh;
+}
+
+body {
+  display: flex;
+  flex-flow: column;
+  margin: 0 auto;
+  max-width: 60em;
+  min-height: 100dvh;
+}

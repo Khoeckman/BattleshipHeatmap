@@ -1,0 +1,19 @@
+import { defineConfig } from 'vite'
+import stylelint from 'vite-plugin-stylelint'
+import eslint from 'vite-plugin-eslint'
+import { resolve } from 'path'
+
+export default defineConfig({
+  root: 'src',
+  publicDir: '../public',
+  build: {
+    target: 'esnext',
+    outDir: '../docs',
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'src/index.html'),
+      },
+    },
+  },
+  plugins: [stylelint(), eslint()],
+})

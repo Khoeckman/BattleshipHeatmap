@@ -1,0 +1,26 @@
+@mixin root {
+  --black: hsl(var(--hue), 20%, 8%);
+  --white: hsl(var(--hue), 20%, 96%);
+
+  --bg: var(--white);
+  --fg: var(--black);
+
+  --hue: 210;
+  --pri: hsl(var(--hue), 100%, 68%);
+
+  --c12: hsl(var(--hue), 20%, 88%);
+  --c24: hsl(var(--hue), 20%, 76%);
+  --c48: hsl(var(--hue), 20%, 52%);
+  --c72: hsl(var(--hue), 20%, 28%);
+
+  --border: #00000008;
+
+  --success: #3f3;
+  --error: #f33;
+}
+
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

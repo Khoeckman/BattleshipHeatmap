@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+  <meta name="description"
+    content="A custom battleship heatmap calculator. Input your board size, boats, and clues to find the best next shot." />
+
+  <!-- Browser Tab -->
+  <title>Battleship Heatmap</title>
+  <link rel="icon" href="/favicon32.webp" sizes="32x32" />
+  <link rel="icon" href="/favicon192.webp" sizes="192x192" />
+
+  <!-- Google Fonts: Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet" />
+
+  <!-- CSS -->
+
+  <!-- JS -->
+  <script type="module" crossorigin src="/assets/main-CIEEbFDC.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/main-BZeYVpPG.css">
+</head>
+
+<body>
+  <header>
+    <div class="credits left">
+      <a href="https://kylecv.be">Kyle Hoeckman</a>
+      <div class="project">
+        <span class="name">Kyle Hoeckman</span>
+        <span class="date">July 2026</span>
+      </div>
+      <div class="logo" aria-hidden="true">
+        <img class="shadow" src="/KHKH.webp" alt="Shadow effect" />
+        <img src="/KHKH.webp" alt="Kyle Hoeckman Logo" />
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <h1>Battleship Heatmap</h1>
+
+    <div class="container">
+      <form id="settings" action="javascript:void(0)" novalidate>
+        <h2 class="sr-only">Settings</h2>
+
+        <section>
+          <h3>Grid Size</h3>
+          <div>
+            <label for="rows">Rows</label>
+            <input type="number" id="rows" name="rows" min="1" max="26" value="10" />
+          </div>
+          <div>
+            <label for="cols">Columns</label>
+            <input type="number" id="cols" name="cols" min="1" max="26" value="10" />
+          </div>
+        </section>
+
+        <section>
+          <h3>Fleet</h3>
+          <div>
+            <label for="boats">Boat Lengths (comma separated)</label>
+            <input type="text" id="boats" name="boats" placeholder="5,4,3,3,2" value="5,4,3,3,2" />
+          </div>
+        </section>
+
+        <hr>
+
+        <div>
+          <input type="checkbox" id="allowTouching" name="allowTouching" />
+          <label for="allowTouching">Allow Boats to Touch</label>
+        </div>
+
+        <hr>
+
+        <div>
+          <label for="generationSeconds">Generation time (seconds)</label>
+          <input type="number" id="generationSeconds" name="generationSeconds" min="1" value="10" />
+        </div>
+
+        <div class="actions">
+          <button type="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path>
+            </svg>
+            Generate Heatmap
+          </button>
+          <button type="button" id="clear">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 6h18"></path>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Clear Grid
+          </button>
+        </div>
+      </form>
+
+      <section id="grid"></section>
+    </div>
+  </main>
+</body>
+
+</html>
