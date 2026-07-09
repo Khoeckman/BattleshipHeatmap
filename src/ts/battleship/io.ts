@@ -134,8 +134,8 @@ export default class BattleshipIO {
         }
         cellEl.textContent = (heat * 100).toFixed(1)
         cellEl.classList.add('chance')
-        cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${(1 - heat ** 0.5) * 100}%)`
-        cellEl.style.color = heat > 0.15 ? 'white' : 'black'
+        cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
+        cellEl.style.color = heat > 0.25 ? 'white' : 'black'
       })
     })
 
