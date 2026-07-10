@@ -191,6 +191,7 @@ export default class BattleshipIO {
 
     this.settingsStore.set('rows', rows)
     this.settingsStore.set('cols', cols)
+    this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()
   }
 
@@ -199,6 +200,7 @@ export default class BattleshipIO {
 
     const { rows, cols, boats, allowTouching, generationSeconds } = this.heatmap
     this.heatmap = new BattleshipHeatmap(new BattleshipGrid(rows, cols, boats, allowTouching), generationSeconds)
+    this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()
   }
 
