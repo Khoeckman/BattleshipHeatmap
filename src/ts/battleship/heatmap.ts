@@ -17,7 +17,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    */
   public heatmap: number[][] = []
 
-  public generating = false
+  #generating = true
   public generationSeconds: number
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
@@ -33,6 +33,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       .map(() => Array(this.cols).fill(0))
 
     this.generationSeconds = generationSeconds
+  }
+
+  get generating(): boolean {
+    return this.#generating
+  }
+
+  set generating(value: boolean) {
+    this.#generating = value
+    clearTimeout(this.generationTimeoutId)
   }
 
   /**
@@ -76,30 +85,25 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * Calculate a heatmap by accumulating many random valid configurations.
    */
   startCalculating(): void {
-    if (this.generating) return
+    if (this.#generating) return
 
-    this.generating = true
+    this.#generating = true
     this.generationStartTs = performance.now()
     this.resetHeatmap()
 
     // Keep generating until timeout fires
     this.generationTimeoutId = setTimeout(() => {
-      this.generating = false
+      this.#generating = false
     }, this.generationSeconds * 1000)
 
     for (let thread = 0; thread < navigator.hardwareConcurrency; thread++) this.#thread()
-  }
-
-  stopCalculating(): void {
-    this.generating = false
-    clearTimeout(this.generationTimeoutId)
   }
 
   async #thread(): Promise<void> {
     const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
 
     worker.addEventListener('message', (e: MessageEvent<number[][]>) => {
-      if (!this.generating) {
+      if (!this.#generating) {
         worker.terminate()
         return
       }
