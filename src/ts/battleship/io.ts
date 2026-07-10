@@ -136,8 +136,8 @@ export default class BattleshipIO {
         }
         cellEl.textContent = (heat * 100).toFixed(1)
         cellEl.classList.add('chance')
-        cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
-        cellEl.style.color = heat > 0.5 ? 'white' : 'black'
+        cellEl.style.setProperty('--color', String(heat > 0.5 ? 'white' : 'black'))
+        cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(heat)) * 50))
       })
     })
   }
@@ -148,7 +148,7 @@ export default class BattleshipIO {
 
     const now = performance.now()
     const cells = this.heatmap.rows * this.heatmap.cols
-    const frameGapMs = Math.min(500, cells / 2)
+    const frameGapMs = Math.min(250, cells / 2.5)
 
     if (now - this.#lastFrameTs > frameGapMs) {
       this.#lastFrameTs = now

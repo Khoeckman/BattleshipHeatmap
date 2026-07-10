@@ -84,8 +84,10 @@
     }
 
     &.chance {
+      background-color: hsl(var(--hue), 100%, calc(var(--lightness, 100) * 1%));
       font-size: 0.8rem;
       line-height: 0.8;
+      color: var(--color);
     }
 
     &.cursor {
