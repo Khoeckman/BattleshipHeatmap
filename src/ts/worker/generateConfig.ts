@@ -41,7 +41,7 @@ self.onmessage = function (e) {
       col = ~~(Math.random() * cols)
     }
 
-    // if (!canPlaceBoat(heatmap, rows, cols, allowTouching, boat, placeRow, placeCol, placeHor)) break
+    if (!canPlaceBoat(heatmap, rows, cols, allowTouching, boat, row, col, horizontal)) break
     placeBoat(heatmap, boat, row, col, horizontal)
     break
   }
@@ -58,8 +58,8 @@ function canPlaceBoat(
   col: number,
   horizontal: boolean
 ): boolean {
-  const endRow = row + +!horizontal * boat
-  const endCol = col + +horizontal * boat
+  const endRow = row + +!horizontal * (boat - 1)
+  const endCol = col + +horizontal * (boat - 1)
 
   // Out of bounds
   if (row < 0 || col < 0 || endRow > rows || endCol > cols) return false
@@ -90,7 +90,6 @@ function canPlaceBoat(
 function placeBoat(heatmap: number[][], boat: number, row: number, col: number, horizontal: boolean): void {
   for (let segment = 0; segment < boat; segment++) {
     heatmap[row][col] = 1
-    return
     row += +!horizontal
     col += +horizontal
   }
