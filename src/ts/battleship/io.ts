@@ -60,10 +60,11 @@ export default class BattleshipIO {
 
     // Load settings into data structure
     const settings = this.settingsStore.value
-    this.heatmap = new BattleshipHeatmap(
-      new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching),
-      settings.generationSeconds
-    )
+
+    const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching)
+    grid.grid = settings.grid
+    console.log(grid)
+    this.heatmap = new BattleshipHeatmap(grid, settings.generationSeconds)
 
     this.#handleClick.bind(this)
     this.#handleKeyDown.bind(this)

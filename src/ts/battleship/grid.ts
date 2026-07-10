@@ -13,17 +13,21 @@ export default class BattleshipGrid {
    * 2 = hit (un sunk ship)
    * 3 = miss (water)
    */
-  public grid: number[][] = []
+  #grid: number[][] = []
 
-  constructor(rows: number, cols: number, boatLengths: number[], allowTouching: boolean) {
+  constructor(rows: number, cols: number, boatLengths: number[], allowTouching: boolean, grid: number[][] = []) {
     this.rows = rows
     this.cols = cols
     this.boats = boatLengths
     this.allowTouching = allowTouching
 
-    this.grid = Array(this.rows)
-      .fill(0)
-      .map(() => Array(this.cols).fill(0))
+    if (grid.length) {
+      this.grid = grid
+    } else {
+      this.grid = Array(this.rows)
+        .fill(0)
+        .map(() => Array(this.cols).fill(0))
+    }
   }
 
   get rows(): number {
@@ -68,6 +72,20 @@ export default class BattleshipGrid {
 
   set allowTouching(value: boolean) {
     this.#allowTouching = !!value
+  }
+
+  get grid(): number[][] {
+    return this.#grid
+  }
+
+  set grid(value: number[][]) {
+    if (!Array.isArray(value) || !value.every((row) => row.every((cell) => cell >= 0 && cell <= 3))) {
+      throw new TypeError('grid must be a two-dimensional array with numbers between 0 and 3')
+    }
+    if (value.length !== this.rows || !value.every((row) => row.length === this.cols)) {
+      throw new RangeError('grid dimensions must match rows and cols')
+    }
+    this.#grid = value
   }
 
   getCell(row: number, col: number): number {

@@ -26,7 +26,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (!(grid instanceof BattleshipGrid)) {
       throw new TypeError('grid must be an instance of BattleshipGrid')
     }
-    super(grid.rows, grid.cols, grid.boats, grid.allowTouching)
+    super(grid.rows, grid.cols, grid.boats, grid.allowTouching, grid.grid)
 
     this.heatmap = Array(this.rows)
       .fill(0)
