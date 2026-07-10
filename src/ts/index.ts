@@ -9,8 +9,8 @@ const fleetEl = document.getElementById('fleet')!
 // Settings form
 const settingsForm = document.getElementById('settings') as HTMLFormElement
 
-const rowsInput = document.getElementById('rows') as HTMLInputElement
-const colsInput = document.getElementById('cols') as HTMLInputElement
+const rowsInput = document.getElementById('rows') as HTMLInputElement & { id: 'rows' }
+const colsInput = document.getElementById('cols') as HTMLInputElement & { id: 'cols' }
 const boatsInput = document.getElementById('boats') as HTMLInputElement
 const allowTouchingCheckbox = document.getElementById('allowTouching') as HTMLInputElement
 const generationSecondsInput = document.getElementById('generationSeconds') as HTMLInputElement
@@ -40,10 +40,15 @@ const io = new BattleshipIO(settingsStore, gridEl, fleetEl, { threadsData, timeD
 rowsInput.addEventListener('change', handleDimension)
 colsInput.addEventListener('change', handleDimension)
 
-function handleDimension(this: HTMLInputElement) {
-  const dimension = +this.value || 10
-  if (this.id === 'rows') io.resizeGrid(dimension, io.heatmap.cols)
-  else if (this.id === 'cols') io.resizeGrid(io.heatmap.rows, dimension)
+function handleDimension(this: HTMLInputElement & { id: 'rows' | 'cols' }) {
+  try {
+    const dimension = this.valueAsNumber
+    if (this.id === 'rows') io.resizeGrid(dimension, io.heatmap.cols)
+    else io.resizeGrid(io.heatmap.rows, dimension)
+  } catch (err) {
+    window.alert(err instanceof Error ? err.message : err)
+    this.valueAsNumber = io.heatmap[this.id]
+  }
 }
 handleDimension.call(rowsInput)
 handleDimension.call(colsInput)

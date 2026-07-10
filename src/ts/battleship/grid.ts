@@ -35,7 +35,7 @@ export default class BattleshipGrid {
   }
 
   set rows(value: number) {
-    if (value < 1 || value > 26) {
+    if (!(value >= 1 || value <= 26)) {
       throw new RangeError('grid dimensions must be between 1 and 26')
     }
     this.#rows = value
@@ -46,7 +46,7 @@ export default class BattleshipGrid {
   }
 
   set cols(value: number) {
-    if (value < 1 || value > 26) {
+    if (!(value >= 1 || value <= 26)) {
       throw new RangeError('grid dimensions must be between 1 and 26')
     }
     this.#cols = value
@@ -103,6 +103,9 @@ export default class BattleshipGrid {
   }
 
   resize(rows: number, cols: number): void {
+    this.rows = rows
+    this.cols = cols
+
     const newGrid = Array(rows)
       .fill(0)
       .map(() => Array(cols).fill(0))
@@ -116,9 +119,6 @@ export default class BattleshipGrid {
         newGrid[row][col] = this.grid[row][col]
       }
     }
-
-    this.rows = rows
-    this.cols = cols
     this.grid = newGrid
   }
 }

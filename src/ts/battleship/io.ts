@@ -61,9 +61,7 @@ export default class BattleshipIO {
     // Load settings into data structure
     const settings = this.settingsStore.value
 
-    const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching)
-    grid.grid = settings.grid
-    console.log(grid)
+    const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching, settings.grid)
     this.heatmap = new BattleshipHeatmap(grid, settings.generationSeconds)
 
     this.#handleClick.bind(this)
@@ -188,11 +186,11 @@ export default class BattleshipIO {
   }
 
   resizeGrid(rows: number, cols: number): void {
-    this.settingsStore.set('rows', rows)
-    this.settingsStore.set('cols', cols)
-
     this.heatmap.generating = false
     this.heatmap.resize(rows, cols)
+
+    this.settingsStore.set('rows', rows)
+    this.settingsStore.set('cols', cols)
     this.renderGrid()
   }
 
