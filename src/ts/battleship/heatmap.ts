@@ -67,6 +67,14 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.accumulated = 0
   }
 
+  resize(rows: number, cols: number): void {
+    super.resize(rows, cols)
+
+    this.heatmap = Array(rows)
+      .fill(0)
+      .map(() => Array(cols).fill(0))
+  }
+
   /**
    * Add the values of two heatmaps of the same size together.
    *
