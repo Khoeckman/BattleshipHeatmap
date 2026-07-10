@@ -63,7 +63,6 @@ export default class BattleshipIO {
 
     // Load settings into data structure
     const settings = this.settingsStore.value
-
     const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching, settings.grid)
     this.heatmap = new BattleshipHeatmap(grid, settings.generationSeconds)
 
@@ -117,45 +116,47 @@ export default class BattleshipIO {
   }
 
   renderHeatmap(): void {
+    const rows = [...this.gridEl.children] as HTMLElement[]
+
+    rows.forEach((rowEl, row) => {
+      const cells = [...rowEl.children] as HTMLElement[]
+
+      cells.forEach((cellEl, col) => {
+        if (this.heatmap.getCell(row, col) !== 0) return
+
+        const heat = this.heatmap.getHeat(row, col)
+
+        if (heat === 0) {
+          cellEl.classList = 'cell'
+          return
+        }
+        cellEl.textContent = (heat * 100).toFixed(1)
+        cellEl.classList.add('chance')
+        cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
+        cellEl.style.color = heat > 0.5 ? 'white' : 'black'
+      })
+    })
+  }
+
+  requestRenderHeatmap(): void {
     if (!this.heatmap.generating) return
-    requestAnimationFrame(() => this.renderHeatmap())
+    requestAnimationFrame(() => this.requestRenderHeatmap())
 
     const now = performance.now()
+    const cells = this.heatmap.rows * this.heatmap.cols
+    const frameGapMs = Math.min(500, cells / 2)
 
-    if (now - this.#lastFrameTs > 40) {
+    if (now - this.#lastFrameTs > frameGapMs) {
       this.#lastFrameTs = now
 
       this.#renderHeatmapController.abort()
       this.#renderHeatmapController = new AbortController()
 
       scheduler
-        .postTask(
-          () => {
-            if (!this.heatmap.generating) return
-
-            const rows = [...this.gridEl.children] as HTMLElement[]
-
-            rows.forEach((rowEl, row) => {
-              const cells = [...rowEl.children] as HTMLElement[]
-
-              cells.forEach((cellEl, col) => {
-                if (this.heatmap.getCell(row, col) !== 0) return
-
-                const heat = this.heatmap.getHeat(row, col)
-
-                if (heat === 0) {
-                  cellEl.classList = 'cell'
-                  return
-                }
-                cellEl.textContent = (heat * 100).toFixed(1)
-                cellEl.classList.add('chance')
-                cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
-                cellEl.style.color = heat > 0.5 ? 'white' : 'black'
-              })
-            })
-          },
-          { priority: 'background', signal: this.#renderHeatmapController.signal }
-        )
+        .postTask(() => this.renderHeatmap(), {
+          priority: 'user-visible',
+          signal: this.#renderHeatmapController.signal,
+        })
         .catch((err) => {
           if (err.name !== 'AbortError') throw err
         })

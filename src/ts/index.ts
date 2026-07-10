@@ -103,7 +103,7 @@ settingsForm.addEventListener('submit', (e) => {
 
   io.heatmap.startCalculating()
   io.renderGrid()
-  requestAnimationFrame(() => io.renderHeatmap())
+  requestAnimationFrame(() => io.requestRenderHeatmap())
 })
 
 clearButton.addEventListener('click', () => {

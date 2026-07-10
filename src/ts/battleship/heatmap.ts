@@ -41,7 +41,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   set generating(value: boolean) {
     this.#generating = value
+    if (value) return
+
     clearTimeout(this.generationTimeoutId)
+    // TODO: Placing a clue while heatmap is generating will sometimes still render the heatmap after the clue is rendered, which is wrong
   }
 
   /**
