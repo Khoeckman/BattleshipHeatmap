@@ -56,6 +56,7 @@
               <label for="rows">Rows</label>
               <input type="number" id="rows" name="rows" min="1" max="26" value="10" />
             </div>
+            <div class="multiply" aria-hidden="true">✕</div>
             <div>
               <label for="cols">Columns</label>
               <input type="number" id="cols" name="cols" min="1" max="26" value="10" />
@@ -69,7 +70,7 @@
             <label for="boats">Boat Lengths (comma separated)</label>
             <input type="text" id="boats" name="boats" placeholder="5,4,3,3,2" value="5,4,3,3,2" />
           </div>
-          <ol id="fleet" class="wrapper"></ol>
+          <ol id="fleet" class="wrapper" aria-hidden="true"></ol>
         </section>
 
         <hr>
@@ -107,7 +108,7 @@
       </form>
 
       <div class="wrapper">
-        <section id="grid"></section>
+        <section id="grid" aria-live="off"></section>
       </div>
 
       <ul id="input">
@@ -119,7 +120,7 @@
 
       <section id="generation">
         <h3>Generation Info</h3>
-        <dl>
+        <dl aria-live="off">
           <div class="wrapper">
             <dt>Threads</dt>
             <dd>0</dd>
@@ -142,7 +143,7 @@
 
   <footer>
     <p>Copyright © Kyle Hoeckman 2026, All rights reserved.</p>
-    <p>Made without AI slop</p>
+    <p>Made without any AI slop.</p>
   </footer>
 </body>
 
