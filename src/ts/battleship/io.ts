@@ -126,8 +126,12 @@ export default class BattleshipIO {
 
         const heat = this.heatmap.getHeat(row, col)
 
-        if (heat === 0) {
+        if (!heat) {
           cellEl.classList = 'cell'
+
+          if (this.cursor.row === row && this.cursor.col === col) {
+            cellEl.classList.add('cursor')
+          }
           return
         }
         cellEl.textContent = (heat * 100).toFixed(1)
@@ -173,22 +177,22 @@ export default class BattleshipIO {
   }
 
   renderCursor(): void {
-    const rows = [...this.gridEl.children]
-
-    rows.forEach((rowEl) => {
-      const cells = [...rowEl.children]
-
-      cells.forEach((cell) => {
-        cell.classList.remove('cursor')
-      })
-    })
-
     this.cursor.row = Math.max(0, Math.min(this.cursor.row, this.heatmap.rows - 1))
     this.cursor.col = Math.max(0, Math.min(this.cursor.col, this.heatmap.cols - 1))
 
-    const cursorEl = this.gridEl.querySelector(`.cell[data-row="${this.cursor.row}"][data-col="${this.cursor.col}"]`)!
-    // Should error if null as it should never happen
-    cursorEl.classList.add('cursor')
+    const rows = [...this.gridEl.children]
+
+    rows.forEach((rowEl, row) => {
+      const cells = [...rowEl.children]
+
+      cells.forEach((cellEl, col) => {
+        if (this.cursor.row === row && this.cursor.col === col) {
+          cellEl.classList.add('cursor')
+        } else {
+          cellEl.classList.remove('cursor')
+        }
+      })
+    })
   }
 
   setCursor(row: number, col: number): void {
@@ -227,6 +231,7 @@ export default class BattleshipIO {
     this.heatmap.generating = false
 
     const { rows, cols, boats, allowTouching, generationSeconds } = this.heatmap
+    // TODO: critical! this causes some delink with the existing heatmap, causing requestRenderHeatmap to keep firing
     this.heatmap = new BattleshipHeatmap(new BattleshipGrid(rows, cols, boats, allowTouching), generationSeconds)
     this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()
