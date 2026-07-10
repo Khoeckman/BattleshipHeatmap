@@ -34,6 +34,9 @@ export default class BattleshipIO {
 
   public cursor = { row: 0, col: 0 }
 
+  #lastFrameTs = 0
+  #renderHeatmapController: AbortController = new AbortController()
+
   constructor(
     settingsStore: HyperStorage<Settings>,
     gridEl: HTMLElement,
@@ -117,28 +120,48 @@ export default class BattleshipIO {
     if (!this.heatmap.generating) return
     requestAnimationFrame(() => this.renderHeatmap())
 
-    const rows = [...this.gridEl.children] as HTMLElement[]
+    const now = performance.now()
 
-    rows.forEach((rowEl, row) => {
-      const cells = [...rowEl.children] as HTMLElement[]
+    if (now - this.#lastFrameTs > 40) {
+      this.#lastFrameTs = now
 
-      cells.forEach((cellEl, col) => {
-        if (this.heatmap.getCell(row, col) !== 0) return
+      this.#renderHeatmapController.abort()
+      this.#renderHeatmapController = new AbortController()
 
-        const heat = this.heatmap.getHeat(row, col)
+      scheduler
+        .postTask(
+          () => {
+            if (!this.heatmap.generating) return
 
-        if (heat === 0) {
-          cellEl.classList = 'cell'
-          return
-        }
-        cellEl.textContent = (heat * 100).toFixed(1)
-        cellEl.classList.add('chance')
-        cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
-        cellEl.style.color = heat > 0.5 ? 'white' : 'black'
-      })
-    })
+            const rows = [...this.gridEl.children] as HTMLElement[]
 
-    const generationMs = performance.now() - this.heatmap.generationStartTs
+            rows.forEach((rowEl, row) => {
+              const cells = [...rowEl.children] as HTMLElement[]
+
+              cells.forEach((cellEl, col) => {
+                if (this.heatmap.getCell(row, col) !== 0) return
+
+                const heat = this.heatmap.getHeat(row, col)
+
+                if (heat === 0) {
+                  cellEl.classList = 'cell'
+                  return
+                }
+                cellEl.textContent = (heat * 100).toFixed(1)
+                cellEl.classList.add('chance')
+                cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
+                cellEl.style.color = heat > 0.5 ? 'white' : 'black'
+              })
+            })
+          },
+          { priority: 'background', signal: this.#renderHeatmapController.signal }
+        )
+        .catch((err) => {
+          if (err.name !== 'AbortError') throw err
+        })
+    }
+
+    const generationMs = now - this.heatmap.generationStartTs
 
     this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
     this.dataEls.configsData.innerText = Intl.NumberFormat('en-US', {
