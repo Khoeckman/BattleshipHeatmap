@@ -1,6 +1,6 @@
 {
   "name": "battleship-heatmap",
-  "description": "A custom battleship probability calculator and solver. Input your board size, boats, and clues to find the best next shot.",
+  "description": "A custom multithreaded battleship probability calculator and solver. Input your board size, boats, and clues to find the best next shot.",
   "version": "0.0.0",
   "private": true,
   "type": "module",

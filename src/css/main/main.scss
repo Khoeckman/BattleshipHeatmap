@@ -38,6 +38,18 @@ main {
     width: fit-content;
   }
 
+  label:has(> input[type='checkbox']) {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0;
+    padding: 1rem;
+    width: fit-content;
+
+    input {
+      order: -1;
+    }
+  }
+
   input:not([type='checkbox']) {
     background-color: var(--bg);
     border: 1px solid var(--c12);
