@@ -35,7 +35,7 @@ export default class BattleshipGrid {
   }
 
   set rows(value: number) {
-    if (!(value >= 1 || value <= 26)) {
+    if (!(value >= 1 && value <= 26)) {
       throw new RangeError('grid dimensions must be between 1 and 26')
     }
     this.#rows = value
@@ -46,7 +46,7 @@ export default class BattleshipGrid {
   }
 
   set cols(value: number) {
-    if (!(value >= 1 || value <= 26)) {
+    if (!(value >= 1 && value <= 26)) {
       throw new RangeError('grid dimensions must be between 1 and 26')
     }
     this.#cols = value

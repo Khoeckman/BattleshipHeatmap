@@ -19,7 +19,7 @@ main {
   }
 
   h3 {
-    margin: 2rem 0 0.5rem 0;
+    margin-block: 2rem 0.5rem;
   }
 
   hr {
@@ -35,6 +35,7 @@ main {
     font-weight: 400;
     color: var(--c72);
     margin-bottom: 0.25rem;
+    width: fit-content;
   }
 
   input:not([type='checkbox']) {
@@ -42,7 +43,7 @@ main {
     border: 1px solid var(--c12);
     border-radius: 0.5rem;
     color: var(--fg);
-    padding: 0.25rem 0.5rem;
+    padding: 0.5rem 0.75rem;
     max-width: 100%;
   }
 
@@ -107,7 +108,7 @@ main {
 
       .multiply {
         align-self: flex-end;
-        line-height: 1.75;
+        line-height: 2.25;
       }
     }
   }
@@ -150,7 +151,8 @@ main {
   }
 
   div:has(> #allowTouching) {
-    display: inline-flex;
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
   }
 
@@ -162,10 +164,12 @@ main {
 
   #input {
     @include flex-center;
+    @include list;
 
     flex-flow: row wrap;
     gap: 1rem;
     list-style-type: none;
+    margin-block: 1rem 2rem;
 
     button {
       min-width: 6rem;
@@ -174,8 +178,8 @@ main {
 
   #generation > dl {
     display: flex;
-    flex-flow: row nowrap;
-    gap: 2rem;
+    flex-flow: row wrap;
+    gap: 1rem 2rem;
 
     > .wrapper {
       text-align: center;

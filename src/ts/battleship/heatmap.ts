@@ -115,6 +115,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       cols: this.cols,
       boats: this.boats,
       allowTouching: this.allowTouching,
+      grid: this.grid,
     })
   }
 }

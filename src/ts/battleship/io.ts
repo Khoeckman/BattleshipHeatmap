@@ -134,14 +134,18 @@ export default class BattleshipIO {
         cellEl.textContent = (heat * 100).toFixed(1)
         cellEl.classList.add('chance')
         cellEl.style.backgroundColor = `hsl(var(--hue), 100%, ${50 + (1 - heat ** 0.5) * 50}%)`
-        cellEl.style.color = heat > 0.25 ? 'white' : 'black'
+        cellEl.style.color = heat > 0.5 ? 'white' : 'black'
       })
     })
 
     const generationMs = performance.now() - this.heatmap.generationStartTs
 
     this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
-    this.dataEls.configsData.innerText = String(this.heatmap.accumulated)
+    this.dataEls.configsData.innerText = Intl.NumberFormat('en-US', {
+      notation: 'compact',
+      maximumSignificantDigits: 3,
+      maximumFractionDigits: 2,
+    }).format(this.heatmap.accumulated)
   }
 
   renderCursor(): void {

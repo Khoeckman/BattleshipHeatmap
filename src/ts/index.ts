@@ -1,7 +1,8 @@
-import { settingsStore } from './settingsStore'
+import { settingsStore, type Settings } from './settingsStore'
 import BattleshipGrid from './battleship/grid'
 import BattleshipHeatmap from './battleship/heatmap'
 import BattleshipIO from './battleship/io'
+import type HyperStorage from 'hyperstorage-js'
 
 const gridEl = document.getElementById('grid')!
 const fleetEl = document.getElementById('fleet')!
@@ -34,7 +35,21 @@ allowTouchingCheckbox.checked = settingsStore.value.allowTouching
 generationSecondsInput.valueAsNumber = settingsStore.value.generationSeconds
 
 // Setup data structure
-const io = new BattleshipIO(settingsStore, gridEl, fleetEl, { threadsData, timeData, configsData })
+let io: BattleshipIO
+
+try {
+  io = new BattleshipIO(settingsStore, gridEl, fleetEl, { threadsData, timeData, configsData })
+} catch (err) {
+  window.alert(err instanceof Error ? err.message : err)
+
+  settingsStore.reset()
+
+  io = new BattleshipIO(settingsStore, gridEl, fleetEl, {
+    threadsData,
+    timeData,
+    configsData,
+  })
+}
 
 // Settings form
 rowsInput.addEventListener('change', handleDimension)
@@ -75,10 +90,11 @@ allowTouchingCheckbox.addEventListener('change', function () {
 })
 
 generationSecondsInput.addEventListener('change', function () {
-  if (isNaN(this.valueAsNumber) || this.valueAsNumber <= 0) {
+  if (isNaN(this.valueAsNumber)) {
     window.alert('Generation time must be a positive number')
     this.valueAsNumber = io.heatmap.generationSeconds
   }
+  this.valueAsNumber = Math.max(+this.min, this.valueAsNumber)
   io.heatmap.generationSeconds = this.valueAsNumber
   io.settingsStore.set('generationSeconds', io.heatmap.generationSeconds)
 })
@@ -86,7 +102,7 @@ generationSecondsInput.addEventListener('change', function () {
 settingsForm.addEventListener('submit', (e) => {
   e.preventDefault()
 
-  if (io.heatmap.generating) return
+  if (io.heatmap.generating) io.heatmap.generating = false
 
   io.heatmap.startCalculating()
   io.renderGrid()
