@@ -11,37 +11,38 @@ self.onmessage = function (e) {
     .fill(0)
     .map(() => Array(cols).fill(0))
 
-  let placeRow
-  let placeCol
-  let placeHor
+  let row
+  let col
+  let horizontal
 
   let placeHorCells
   let placeVerCells
-  let placeBothCells
-  let placeTotalCells
 
   for (const boat of boats) {
-    const r = cols - boat + 1
-    const c = rows - boat + 1
+    const r = Math.max(0, cols - boat + 1)
+    const c = Math.max(0, rows - boat + 1)
 
     // Make it so the boat has an equal chance of being placed anywhere
     placeHorCells = rows * r
     placeVerCells = cols * c
-    placeBothCells = r * c
-    placeTotalCells = placeHorCells + placeVerCells - placeBothCells * 2
-    placeHor = !!(~~(Math.random() * placeTotalCells) < placeHorCells - placeBothCells)
+    horizontal = !!(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
+
+    if ((horizontal && r === 0) || (!horizontal && c === 0)) {
+      self.postMessage(false)
+      return
+    }
 
     // Place the boat so it won't overflow the grid
-    if (placeHor) {
-      placeRow = ~~(Math.random() * rows)
-      placeCol = ~~(Math.random() * c)
+    if (horizontal) {
+      row = ~~(Math.random() * rows)
+      col = ~~(Math.random() * r)
     } else {
-      placeRow = ~~(Math.random() * r)
-      placeCol = ~~(Math.random() * cols)
+      row = ~~(Math.random() * c)
+      col = ~~(Math.random() * cols)
     }
 
     // if (!canPlaceBoat(heatmap, rows, cols, allowTouching, boat, placeRow, placeCol, placeHor)) break
-    placeBoat(heatmap, boat, placeRow, placeCol, placeHor)
+    placeBoat(heatmap, boat, row, col, horizontal)
     break
   }
   self.postMessage(heatmap)
