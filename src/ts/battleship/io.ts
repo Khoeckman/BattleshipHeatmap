@@ -244,7 +244,12 @@ export default class BattleshipIO {
   }
 
   #handleKeyDown(e: KeyboardEvent): void {
-    if (document.activeElement !== document.body) return
+    if (
+      document.activeElement instanceof HTMLElement &&
+      (document.activeElement.matches('input, textarea, select') || document.activeElement.isContentEditable)
+    ) {
+      return
+    }
 
     let preventDefault = true
 
