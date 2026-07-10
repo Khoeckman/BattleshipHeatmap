@@ -114,8 +114,8 @@ export default class BattleshipIO {
   }
 
   renderHeatmap(): void {
-    if (this.heatmap.generating) requestAnimationFrame(() => this.renderHeatmap())
-    else return
+    if (!this.heatmap.generating) return
+    requestAnimationFrame(() => this.renderHeatmap())
 
     const rows = [...this.gridEl.children] as HTMLElement[]
 

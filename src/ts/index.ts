@@ -1,8 +1,5 @@
-import { settingsStore, type Settings } from './settingsStore'
-import BattleshipGrid from './battleship/grid'
-import BattleshipHeatmap from './battleship/heatmap'
+import { settingsStore } from './settingsStore'
 import BattleshipIO from './battleship/io'
-import type HyperStorage from 'hyperstorage-js'
 
 const gridEl = document.getElementById('grid')!
 const fleetEl = document.getElementById('fleet')!
