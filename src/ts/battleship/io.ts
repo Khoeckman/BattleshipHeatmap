@@ -228,11 +228,10 @@ export default class BattleshipIO {
   }
 
   clearGrid(): void {
+    const { rows, cols, boats, allowTouching, generationSeconds } = this.heatmap
+    this.heatmap = new BattleshipHeatmap(new BattleshipGrid(rows, cols, boats, allowTouching), generationSeconds)
     this.heatmap.generating = false
 
-    const { rows, cols, boats, allowTouching, generationSeconds } = this.heatmap
-    // TODO: critical! this causes some delink with the existing heatmap, causing requestRenderHeatmap to keep firing
-    this.heatmap = new BattleshipHeatmap(new BattleshipGrid(rows, cols, boats, allowTouching), generationSeconds)
     this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()
   }
