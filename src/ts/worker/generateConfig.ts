@@ -1,3 +1,5 @@
+import BattleshipHeatmap from '../battleship/heatmap'
+
 type Data = {
   rows: number
   cols: number
@@ -15,35 +17,56 @@ self.onmessage = function (e: MessageEvent<Data>) {
 
   let row
   let col
-  let horizontal
-
-  let placeHorCells
-  let placeVerCells
 
   for (const boat of boats) {
     const r = Math.max(0, cols - boat + 1)
     const c = Math.max(0, rows - boat + 1)
 
     // Make it so the boat has an equal chance of being placed anywhere
-    placeHorCells = rows * r
-    placeVerCells = cols * c
-    horizontal = !!(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
+    const placeHorCells = rows * r
+    const placeVerCells = cols * c
 
-    // Place the boat randomly ensuring it won't overflow the grid
-    if (horizontal) {
-      row = ~~(Math.random() * rows)
-      col = ~~(Math.random() * r)
-    } else {
-      row = ~~(Math.random() * c)
-      col = ~~(Math.random() * cols)
+    let boatPlaced = false
+
+    for (let tries = 0; tries < Math.sqrt(rows * cols) * 80; tries++) {
+      const horizontal = !!(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
+
+      // Place the boat randomly ensuring it won't overflow the grid
+      if (horizontal) {
+        row = ~~(Math.random() * rows)
+        col = ~~(Math.random() * r)
+      } else {
+        row = ~~(Math.random() * c)
+        col = ~~(Math.random() * cols)
+      }
+
+      if (canPlaceBoat(e.data, heatmap, boat, row, col, horizontal)) {
+        forEachSegment(boat, row, col, horizontal, (row, col) => (heatmap[row][col] = 1))
+        boatPlaced = true
+        break
+      }
     }
 
-    if (!canPlaceBoat(e.data, heatmap, boat, row, col, horizontal)) {
+    if (!boatPlaced) {
       self.postMessage(false)
       return
     }
-    placeBoat(heatmap, boat, row, col, horizontal)
   }
+
+  // Check if all hit and sunk clues have a boat placed on them
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      if (
+        (grid[row][col] === BattleshipHeatmap.SUNK || grid[row][col] === BattleshipHeatmap.HIT) &&
+        !heatmap[row][col]
+      ) {
+        self.postMessage(false)
+        return
+      }
+    }
+  }
+
+  // Successful configuration found
   self.postMessage(heatmap)
 }
 
@@ -65,7 +88,7 @@ function canPlaceBoat(
 
   if (allowTouching) {
     for (let segment = 0; segment < boat; segment++) {
-      if (heatmap[row][col] || grid[row][col]) return false
+      if (heatmap[row][col] || grid[row][col] === BattleshipHeatmap.MISS) return false
       row += +!horizontal
       col += +horizontal
     }
@@ -83,12 +106,25 @@ function canPlaceBoat(
       if (heatmap[r][c]) return false
     }
   }
+
+  // Disallow placing the boat over a miss clue
+  for (let segment = 0; segment < boat; segment++) {
+    if (grid[row][col] === 3) return false
+    row += +!horizontal
+    col += +horizontal
+  }
   return true
 }
 
-function placeBoat(heatmap: number[][], boat: number, row: number, col: number, horizontal: boolean): void {
+function forEachSegment(
+  boat: number,
+  row: number,
+  col: number,
+  horizontal: boolean,
+  callback: (row: number, col: number) => void
+): void {
   for (let segment = 0; segment < boat; segment++) {
-    heatmap[row][col] = 1
+    callback(row, col)
     row += +!horizontal
     col += +horizontal
   }
