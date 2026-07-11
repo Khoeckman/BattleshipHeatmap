@@ -4,6 +4,13 @@ import BattleshipGrid from './grid'
 import BattleshipHeatmap from './heatmap'
 import type { Settings } from '../settingsStore'
 
+export type DataElements = {
+  threadsData: HTMLElement
+  timeData: HTMLElement
+  attemptsData: HTMLElement
+  configsData: HTMLElement
+}
+
 export default class BattleshipIO {
   private static CLUE_TEXT: { [key: number]: string } = {
     0: 'empty',
@@ -29,7 +36,7 @@ export default class BattleshipIO {
   public settingsStore: HyperStorage<Settings>
   public gridEl: HTMLElement
   public fleetEl: HTMLElement
-  public dataEls: { threadsData: HTMLElement; timeData: HTMLElement; configsData: HTMLElement }
+  public dataEls: DataElements
   public heatmap: BattleshipHeatmap
 
   public cursor = { row: 0, col: 0 }
@@ -37,12 +44,7 @@ export default class BattleshipIO {
   #lastFrameTs = 0
   #renderHeatmapController: AbortController = new AbortController()
 
-  constructor(
-    settingsStore: HyperStorage<Settings>,
-    gridEl: HTMLElement,
-    fleetEl: HTMLElement,
-    dataEls: { threadsData: HTMLElement; timeData: HTMLElement; configsData: HTMLElement }
-  ) {
+  constructor(settingsStore: HyperStorage<Settings>, gridEl: HTMLElement, fleetEl: HTMLElement, dataEls: DataElements) {
     if (!(settingsStore instanceof HyperStorage)) {
       throw new TypeError('settingsStore must be an instance of HyperStorage')
     }
@@ -169,6 +171,11 @@ export default class BattleshipIO {
     const generationMs = now - this.heatmap.generationStartTs
 
     this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
+    this.dataEls.attemptsData.innerText = Intl.NumberFormat('en-US', {
+      notation: 'compact',
+      maximumSignificantDigits: 3,
+      maximumFractionDigits: 2,
+    }).format(this.heatmap.attempts)
     this.dataEls.configsData.innerText = Intl.NumberFormat('en-US', {
       notation: 'compact',
       maximumSignificantDigits: 3,
@@ -228,9 +235,9 @@ export default class BattleshipIO {
   }
 
   clearGrid(): void {
-    const { rows, cols, boats, allowTouching, generationSeconds } = this.heatmap
-    this.heatmap = new BattleshipHeatmap(new BattleshipGrid(rows, cols, boats, allowTouching), generationSeconds)
     this.heatmap.generating = false
+
+    this.heatmap.reset()
 
     this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()

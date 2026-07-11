@@ -20,9 +20,11 @@ const inputButtons = [...(document.getElementById('input') as HTMLInputElement).
 
 // Generation info
 const generationInfo = document.getElementById('generation') as HTMLElement
-const threadsData = generationInfo.querySelector('dl div:nth-child(1)  dd') as HTMLElement
-const timeData = generationInfo.querySelector('dl div:nth-child(2)  dd') as HTMLElement
-const configsData = generationInfo.querySelector('dl div:nth-child(3)  dd') as HTMLElement
+const threadsData = generationInfo.querySelector('dl div:nth-child(1) dd') as HTMLElement
+const timeData = generationInfo.querySelector('dl div:nth-child(2) dd') as HTMLElement
+const attemptsData = generationInfo.querySelector('dl div:nth-child(3) dd') as HTMLElement
+const configsData = generationInfo.querySelector('dl div:nth-child(4) dd') as HTMLElement
+const dataEls = { threadsData, timeData, attemptsData, configsData }
 
 // Load store into fields
 rowsInput.valueAsNumber = settingsStore.value.rows
@@ -35,17 +37,11 @@ generationSecondsInput.valueAsNumber = settingsStore.value.generationSeconds
 let io: BattleshipIO
 
 try {
-  io = new BattleshipIO(settingsStore, gridEl, fleetEl, { threadsData, timeData, configsData })
+  io = new BattleshipIO(settingsStore, gridEl, fleetEl, dataEls)
 } catch (err) {
   window.alert(err instanceof Error ? err.message : err)
-
   settingsStore.reset()
-
-  io = new BattleshipIO(settingsStore, gridEl, fleetEl, {
-    threadsData,
-    timeData,
-    configsData,
-  })
+  io = new BattleshipIO(settingsStore, gridEl, fleetEl, dataEls)
 }
 
 // Settings form

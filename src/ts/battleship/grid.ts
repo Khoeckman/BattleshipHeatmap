@@ -121,4 +121,12 @@ export default class BattleshipGrid {
     }
     this.grid = newGrid
   }
+
+  reset(): void {
+    for (let row in this.grid) {
+      for (let col in this.grid[row]) {
+        this.grid[row][col] = 0
+      }
+    }
+  }
 }

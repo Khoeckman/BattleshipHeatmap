@@ -6,8 +6,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   public static readonly HIT = 2
   public static readonly MISS = 3
 
+  /** The number of attempts to generate a valid configuration */
+  public attempts = 0
+
   /** The number of valid configurations used to accumulate the heatmap */
-  public accumulated: number = 0
+  public accumulated = 0
 
   /**
    * Represents the heatmap grid
@@ -61,21 +64,32 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return this.heatmap[row][cell] / Math.max(1, this.accumulated) // Normalize
   }
 
-  resetHeatmap(): void {
-    for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
-        this.heatmap[row][col] = 0
-      }
-    }
-    this.accumulated = 0
-  }
-
   resize(rows: number, cols: number): void {
     super.resize(rows, cols)
 
     this.heatmap = Array(rows)
       .fill(0)
       .map(() => Array(cols).fill(0))
+  }
+
+  reset(): void {
+    super.reset()
+
+    for (let row in this.heatmap) {
+      for (let col in this.heatmap[row]) {
+        this.heatmap[row][col] = 0
+      }
+    }
+  }
+
+  resetHeatmap(): void {
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        this.heatmap[row][col] = 0
+      }
+    }
+    this.attempts = 0
+    this.accumulated = 0
   }
 
   /**
@@ -125,6 +139,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   #generateConfig(worker: Worker): void {
+    this.attempts++
+
     worker.postMessage({
       rows: this.rows,
       cols: this.cols,
