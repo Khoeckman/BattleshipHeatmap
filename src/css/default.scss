@@ -41,3 +41,9 @@ img {
   white-space: nowrap;
   border-width: 0;
 }
+
+.break-avoid {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
