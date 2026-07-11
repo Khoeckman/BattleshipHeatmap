@@ -11,6 +11,11 @@ export type DataElements = {
   configsData: HTMLElement
 }
 
+type HeatCache = {
+  els: HTMLElement[][]
+  state: string[][]
+}
+
 export default class BattleshipIO {
   private static CLUE_TEXT: { [key: number]: string } = {
     0: 'empty',
@@ -93,6 +98,7 @@ export default class BattleshipIO {
   }
 
   renderGrid(): void {
+    this.#invalidateHeatCache()
     this.gridEl.innerHTML = ''
 
     for (let row = 0; row < this.heatmap.rows; row++) {
@@ -117,31 +123,50 @@ export default class BattleshipIO {
     this.renderCursor()
   }
 
+  private heat: HeatCache = { els: [], state: [] }
+
+  #getHeatCache(): HeatCache {
+    if (!this.heat.els.length) {
+      const rows = [...this.gridEl.children] as HTMLElement[]
+      this.heat.els = rows.map((rowEl) => [...rowEl.children] as HTMLElement[])
+      this.heat.state = this.heat.els.map((row) => row.map(() => ''))
+    }
+    return this.heat
+  }
+
+  #invalidateHeatCache(): void {
+    this.heat.els = []
+    this.heat.state = []
+  }
+
   renderHeatmap(): void {
-    const rows = [...this.gridEl.children] as HTMLElement[]
+    const { els: heatEls, state: heatState } = this.#getHeatCache()
 
-    rows.forEach((rowEl, row) => {
-      const cells = [...rowEl.children] as HTMLElement[]
+    for (let row = 0; row < heatEls.length; row++) {
+      const rowEls = heatEls[row]
+      const rowHeatState = heatState[row]
 
-      cells.forEach((cellEl, col) => {
-        if (this.heatmap.getCell(row, col) !== 0) return
+      for (let col = 0; col < rowEls.length; col++) {
+        if (this.heatmap.getCell(row, col) !== 0) continue
 
         const heat = this.heatmap.getHeat(row, col)
+        const heatString = (heat * 100).toFixed(1)
+        if (rowHeatState[col] === heatString) continue
+        rowHeatState[col] = heatString
+
+        const cellEl = rowEls[col]
+        const isCursor = this.cursor.row === row && this.cursor.col === col
 
         if (!heat) {
-          cellEl.classList = 'cell'
-
-          if (this.cursor.row === row && this.cursor.col === col) {
-            cellEl.classList.add('cursor')
-          }
-          return
+          cellEl.className = isCursor ? 'cell cursor' : 'cell'
+          continue
         }
-        cellEl.textContent = (heat * 100).toFixed(1)
-        cellEl.classList.add('chance')
+        cellEl.textContent = heatString
+        cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
         cellEl.style.setProperty('--color', String(heat > 0.5 ? 'white' : 'black'))
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(heat)) * 50))
-      })
-    })
+      }
+    }
   }
 
   requestRenderHeatmap(): void {
@@ -171,11 +196,13 @@ export default class BattleshipIO {
     const generationMs = now - this.heatmap.generationStartTs
 
     this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
+
     this.dataEls.attemptsData.innerText = Intl.NumberFormat('en-US', {
       notation: 'compact',
       maximumSignificantDigits: 3,
       maximumFractionDigits: 2,
     }).format(this.heatmap.attempts)
+
     this.dataEls.configsData.innerText = Intl.NumberFormat('en-US', {
       notation: 'compact',
       maximumSignificantDigits: 3,
@@ -236,7 +263,6 @@ export default class BattleshipIO {
 
   clearGrid(): void {
     this.heatmap.generating = false
-
     this.heatmap.reset()
 
     this.settingsStore.set('grid', this.heatmap.grid)
