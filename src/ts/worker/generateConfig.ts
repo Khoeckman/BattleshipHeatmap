@@ -1,11 +1,13 @@
-self.onmessage = function (e) {
-  const { rows, cols, boats, allowTouching, grid } = e.data as {
-    rows: number
-    cols: number
-    boats: number[]
-    allowTouching: boolean
-    grid: number[][]
-  }
+type Data = {
+  rows: number
+  cols: number
+  boats: number[]
+  allowTouching: boolean
+  grid: number[][]
+}
+
+self.onmessage = function (e: MessageEvent<Data>) {
+  const { rows, cols, boats, allowTouching, grid } = e.data
 
   const heatmap = Array(rows)
     .fill(0)
@@ -27,12 +29,7 @@ self.onmessage = function (e) {
     placeVerCells = cols * c
     horizontal = !!(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
 
-    if ((horizontal && r === 0) || (!horizontal && c === 0)) {
-      self.postMessage(false)
-      return
-    }
-
-    // Place the boat so it won't overflow the grid
+    // Place the boat randomly ensuring it won't overflow the grid
     if (horizontal) {
       row = ~~(Math.random() * rows)
       col = ~~(Math.random() * r)
@@ -41,23 +38,25 @@ self.onmessage = function (e) {
       col = ~~(Math.random() * cols)
     }
 
-    if (!canPlaceBoat(heatmap, rows, cols, allowTouching, boat, row, col, horizontal)) break
+    if (!canPlaceBoat(e.data, heatmap, boat, row, col, horizontal)) {
+      self.postMessage(false)
+      return
+    }
     placeBoat(heatmap, boat, row, col, horizontal)
-    break
   }
   self.postMessage(heatmap)
 }
 
 function canPlaceBoat(
+  data: Data,
   heatmap: number[][],
-  rows: number,
-  cols: number,
-  allowTouching: boolean,
   boat: number,
   row: number,
   col: number,
   horizontal: boolean
 ): boolean {
+  const { rows, cols, allowTouching, grid } = data
+
   const endRow = row + +!horizontal * (boat - 1)
   const endCol = col + +horizontal * (boat - 1)
 
@@ -66,7 +65,7 @@ function canPlaceBoat(
 
   if (allowTouching) {
     for (let segment = 0; segment < boat; segment++) {
-      if (heatmap[row][col]) return false
+      if (heatmap[row][col] || grid[row][col]) return false
       row += +!horizontal
       col += +horizontal
     }
