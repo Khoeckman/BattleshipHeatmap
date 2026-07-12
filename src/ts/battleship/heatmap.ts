@@ -47,7 +47,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (value) return
 
     clearTimeout(this.generationTimeoutId)
-    // TODO: Placing a clue while heatmap is generating will sometimes still render the heatmap after the clue is rendered, which is wrong
   }
 
   /**
@@ -109,7 +108,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   /**
    * Calculate a heatmap by accumulating many random valid configurations.
    */
-  startCalculating(): void {
+  startCalculating(onTimeout?: () => void): void {
     if (this.#generating) return
 
     this.#generating = true
@@ -119,6 +118,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     // Keep generating until timeout fires
     this.generationTimeoutId = setTimeout(() => {
       this.#generating = false
+      onTimeout?.()
     }, this.generationSeconds * 1000)
 
     for (let thread = 0; thread < navigator.hardwareConcurrency; thread++) this.#thread()
@@ -130,19 +130,18 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     })
 
     worker.addEventListener('message', (e: MessageEvent<number[][] | false>) => {
+      if (e.data) this.accumulateHeatmap(e.data)
+
       if (!this.#generating) {
         worker.terminate()
         return
       }
-      if (e.data) this.accumulateHeatmap(e.data)
       this.#generateConfig(worker)
     })
     this.#generateConfig(worker)
   }
 
   #generateConfig(worker: Worker): void {
-    this.attempts++
-
     worker.postMessage({
       rows: this.rows,
       cols: this.cols,
@@ -150,5 +149,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       allowTouching: this.allowTouching,
       grid: this.grid,
     })
+    this.attempts++
   }
 }

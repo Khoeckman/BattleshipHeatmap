@@ -95,11 +95,14 @@ generationSecondsInput.addEventListener('change', function () {
 settingsForm.addEventListener('submit', (e) => {
   e.preventDefault()
 
-  if (io.heatmap.generating) io.heatmap.generating = false
-
-  io.heatmap.startCalculating()
+  io.heatmap.generating = false
+  io.heatmap.startCalculating(() => io.renderHeatmap())
   io.renderGrid()
-  requestAnimationFrame(() => io.requestRenderHeatmap())
+
+  requestAnimationFrame(() => {
+    io.scheduleRenderHeatmap()
+    io.renderGenerationInfo()
+  })
 })
 
 clearButton.addEventListener('click', () => {

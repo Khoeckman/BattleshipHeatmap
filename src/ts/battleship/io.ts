@@ -174,37 +174,42 @@ export default class BattleshipIO {
         }
         cellEl.textContent = heatString
         cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
-        cellEl.style.setProperty('--color', String(heat > 0.5 ? 'white' : 'black'))
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(heat)) * 50))
       }
     }
   }
 
-  requestRenderHeatmap(): void {
+  scheduleRenderHeatmap(): void {
     if (!this.heatmap.generating) return
-    requestAnimationFrame(() => this.requestRenderHeatmap())
+
+    requestAnimationFrame(() => {
+      this.scheduleRenderHeatmap()
+      this.renderGenerationInfo()
+    })
 
     const now = performance.now()
     const cells = this.heatmap.rows * this.heatmap.cols
     const frameGapMs = Math.min(250, cells / 2.5)
 
-    if (now - this.#lastFrameTs > frameGapMs) {
-      this.#lastFrameTs = now
+    if (this.heatmap.generating && now - this.#lastFrameTs < frameGapMs) return
 
-      this.#renderHeatmapController.abort()
-      this.#renderHeatmapController = new AbortController()
+    this.#lastFrameTs = now
 
-      scheduler
-        .postTask(() => this.renderHeatmap(), {
-          priority: 'user-visible',
-          signal: this.#renderHeatmapController.signal,
-        })
-        .catch((err) => {
-          if (err.name !== 'AbortError') throw err
-        })
-    }
+    this.#renderHeatmapController.abort()
+    this.#renderHeatmapController = new AbortController()
 
-    const generationMs = now - this.heatmap.generationStartTs
+    scheduler
+      .postTask(() => this.renderHeatmap(), {
+        priority: 'user-visible',
+        signal: this.#renderHeatmapController.signal,
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') throw err
+      })
+  }
+
+  renderGenerationInfo(): void {
+    const generationMs = performance.now() - this.heatmap.generationStartTs
 
     this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
 
@@ -324,7 +329,7 @@ export default class BattleshipIO {
         break
       case 's':
         this.setCursorCell(BattleshipHeatmap.SUNK)
-        // Extra: automatically mark all adjacent HIT's as SUNK using a recursive io function
+        // TODO: Extra: automatically mark all adjacent HIT's as SUNK using a recursive io function
         break
       case 'h':
         this.setCursorCell(BattleshipHeatmap.HIT)
