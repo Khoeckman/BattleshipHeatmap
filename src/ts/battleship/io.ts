@@ -312,6 +312,12 @@ export default class BattleshipIO {
     this.renderGrid()
   }
 
+  setAllowTouching(allowTouching: boolean): void {
+    this.heatmap.generating = false
+    this.heatmap.allowTouching = allowTouching
+    this.settingsStore.set('allowTouching', this.heatmap.allowTouching)
+  }
+
   #handleClick(e: PointerEvent): void {
     const target = e.target as HTMLElement
 

@@ -78,8 +78,7 @@ function parseBoatLengths(this: HTMLInputElement) {
 parseBoatLengths.call(boatsInput)
 
 allowTouchingCheckbox.addEventListener('change', function () {
-  io.heatmap.allowTouching = this.checked
-  io.settingsStore.set('allowTouching', io.heatmap.allowTouching)
+  io.setAllowTouching(this.checked)
 })
 
 generationSecondsInput.addEventListener('change', function () {
