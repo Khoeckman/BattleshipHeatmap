@@ -151,7 +151,7 @@ export default class BattleshipIO {
     this.renderCursor()
   }
 
-  private heat: HeatCache = { els: [], state: [] }
+  private heat: HeatCache = { els: [], state: [], hottestPos: { row: NaN, col: NaN } }
 
   #getHeatCache(): HeatCache {
     if (!this.heat.els.length) {
@@ -165,6 +165,7 @@ export default class BattleshipIO {
   #invalidateHeatCache(): void {
     this.heat.els = []
     this.heat.state = []
+    this.heat.hottestPos = { row: NaN, col: NaN }
   }
 
   renderHeatmap(force = false): void {
@@ -186,7 +187,12 @@ export default class BattleshipIO {
 
         const heat = this.heatmap.getHeat(row, col)
         const heatString = (heat * 100).toFixed(1)
-        if (rowHeatState[col] === heatString) continue
+
+        // Cache heat values and skip if the value remained the same
+        const isSameHottestPos =
+          hottestRow === this.heat.hottestPos.row && hottestCol === this.heat.hottestPos.col
+
+        if (rowHeatState[col] === heatString && isSameHottestPos) continue
         rowHeatState[col] = heatString
 
         const cellEl = rowEls[col]
