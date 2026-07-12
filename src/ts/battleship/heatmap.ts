@@ -96,12 +96,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   reset(): void {
     super.reset()
-
-    for (let row in this.heatmap) {
-      for (let col in this.heatmap[row]) {
-        this.heatmap[row][col] = 0
-      }
-    }
+    this.resetHeatmap()
   }
 
   resetHeatmap(): void {

@@ -95,12 +95,11 @@ settingsForm.addEventListener('submit', (e) => {
   e.preventDefault()
 
   io.heatmap.generating = false
-  io.heatmap.startCalculating(() => io.renderHeatmap())
+  io.heatmap.startCalculating(() => io.renderHeatmap(true))
   io.renderGrid()
 
   requestAnimationFrame(() => {
     io.scheduleRenderHeatmap()
-    io.renderGenerationInfo()
   })
 })
 

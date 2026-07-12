@@ -20,6 +20,7 @@
       background-color: var(--c72);
       width: 1rem;
       height: 1rem;
+      transition: background-color 250ms;
 
       &:first-child {
         border-radius: 50% 0 0 50%;
@@ -29,10 +30,10 @@
         border-top-right-radius: 50%;
         border-bottom-right-radius: 50%;
       }
+    }
 
-      &.sunk {
-        background-color: var(--c24);
-      }
+    &.sunk div {
+      background-color: var(--c24);
     }
   }
 }

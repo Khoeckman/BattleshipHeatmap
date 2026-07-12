@@ -18,11 +18,18 @@ self.onmessage = function (e: MessageEvent<Data>) {
   let row
   let col
 
+  // Fisher-Yates shuffle
+  for (let i = boats.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[boats[i], boats[j]] = [boats[j], boats[i]]
+  }
+
   for (const boat of boats) {
+    // The highest coordinates for the lowest coordinate of the boat to be at
     const r = Math.max(0, cols - boat + 1)
     const c = Math.max(0, rows - boat + 1)
 
-    // Make it so the boat has an equal chance of being placed anywhere
+    // Place the boat with perfectly distributed chances
     const placeHorCells = rows * r
     const placeVerCells = cols * c
 

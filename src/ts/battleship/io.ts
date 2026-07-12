@@ -167,7 +167,9 @@ export default class BattleshipIO {
     this.heat.state = []
   }
 
-  renderHeatmap(): void {
+  renderHeatmap(force = false): void {
+    if (!force && !this.heatmap.generating) return
+
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
     minHeat *= 0.9
@@ -181,7 +183,7 @@ export default class BattleshipIO {
         if (this.heatmap.getCell(row, col) !== 0) continue
 
         const heat = this.heatmap.getHeat(row, col)
-        const heatString = (heat * 100).toFixed(heat < 0.1 ? 2 : 1)
+        const heatString = (heat * 100).toFixed(1)
         if (rowHeatState[col] === heatString) continue
         rowHeatState[col] = heatString
 
@@ -202,11 +204,12 @@ export default class BattleshipIO {
   }
 
   scheduleRenderHeatmap(): void {
+    this.renderGenerationInfo()
+
     if (!this.heatmap.generating) return
 
     requestAnimationFrame(() => {
       this.scheduleRenderHeatmap()
-      this.renderGenerationInfo()
     })
 
     const now = performance.now()
