@@ -85,7 +85,18 @@
 
     &.hottest {
       border-width: 2px;
-      border-color: var(--success);
+      animation: hottest-blink 1s infinite ease-in-out;
+    }
+
+    @keyframes hottest-blink {
+      from,
+      to {
+        border-color: var(--success);
+      }
+
+      50% {
+        border-color: var(--border);
+      }
     }
 
     &.cursor {
@@ -95,6 +106,10 @@
       &.hit,
       &.chance {
         outline-color: var(--fg);
+      }
+
+      &.hottest {
+        outline-color: var(--success);
       }
     }
 
