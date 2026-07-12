@@ -49,7 +49,12 @@ export default class BattleshipIO {
   #lastFrameTs = 0
   #renderHeatmapController: AbortController = new AbortController()
 
-  constructor(settingsStore: HyperStorage<Settings>, gridEl: HTMLElement, fleetEl: HTMLElement, dataEls: DataElements) {
+  constructor(
+    settingsStore: HyperStorage<Settings>,
+    gridEl: HTMLElement,
+    fleetEl: HTMLElement,
+    dataEls: DataElements
+  ) {
     if (!(settingsStore instanceof HyperStorage)) {
       throw new TypeError('settingsStore must be an instance of HyperStorage')
     }
@@ -70,7 +75,13 @@ export default class BattleshipIO {
 
     // Load settings into data structure
     const settings = this.settingsStore.value
-    const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching, settings.grid)
+    const grid = new BattleshipGrid(
+      settings.rows,
+      settings.cols,
+      settings.boats,
+      settings.allowTouching,
+      settings.grid
+    )
     this.heatmap = new BattleshipHeatmap(grid, settings.generationSeconds)
 
     this.#handleClick.bind(this)
@@ -283,10 +294,10 @@ export default class BattleshipIO {
   #handleKeyDown(e: KeyboardEvent): void {
     if (
       document.activeElement instanceof HTMLElement &&
-      (document.activeElement.matches('input, textarea, select') || document.activeElement.isContentEditable)
-    ) {
+      (document.activeElement.matches('input, textarea, select') ||
+        document.activeElement.isContentEditable)
+    )
       return
-    }
 
     let preventDefault = true
 

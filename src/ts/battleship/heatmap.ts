@@ -125,7 +125,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async #thread(): Promise<void> {
-    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
+    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
+      type: 'module',
+    })
 
     worker.addEventListener('message', (e: MessageEvent<number[][] | false>) => {
       if (!this.#generating) {

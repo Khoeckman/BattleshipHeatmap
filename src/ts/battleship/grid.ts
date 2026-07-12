@@ -15,7 +15,13 @@ export default class BattleshipGrid {
    */
   #grid: number[][] = []
 
-  constructor(rows: number, cols: number, boatLengths: number[], allowTouching: boolean, grid: number[][] = []) {
+  constructor(
+    rows: number,
+    cols: number,
+    boatLengths: number[],
+    allowTouching: boolean,
+    grid: number[][] = []
+  ) {
     this.rows = rows
     this.cols = cols
     this.boats = boatLengths
@@ -79,7 +85,10 @@ export default class BattleshipGrid {
   }
 
   set grid(value: number[][]) {
-    if (!Array.isArray(value) || !value.every((row) => row.every((cell) => cell >= 0 && cell <= 3))) {
+    if (
+      !Array.isArray(value) ||
+      !value.every((row) => row.every((cell) => cell >= 0 && cell <= 3))
+    ) {
       throw new TypeError('grid must be a two-dimensional array with numbers between 0 and 3')
     }
     if (value.length !== this.rows || !value.every((row) => row.length === this.cols)) {
