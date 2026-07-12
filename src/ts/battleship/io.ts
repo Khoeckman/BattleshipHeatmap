@@ -14,6 +14,7 @@ export type DataElements = {
 type HeatCache = {
   els: HTMLElement[][]
   state: string[][]
+  hottestPos: { row: number; col: number }
 }
 
 export default class BattleshipIO {
@@ -39,6 +40,7 @@ export default class BattleshipIO {
   }
 
   public settingsStore: HyperStorage<Settings>
+  public generateButton: HTMLButtonElement
   public gridEl: HTMLElement
   public fleetEl: HTMLElement
   public dataEls: DataElements
@@ -51,6 +53,7 @@ export default class BattleshipIO {
 
   constructor(
     settingsStore: HyperStorage<Settings>,
+    generateButton: HTMLButtonElement,
     gridEl: HTMLElement,
     fleetEl: HTMLElement,
     dataEls: DataElements
@@ -59,6 +62,11 @@ export default class BattleshipIO {
       throw new TypeError('settingsStore must be an instance of HyperStorage')
     }
     this.settingsStore = settingsStore
+
+    if (!(generateButton instanceof HTMLButtonElement)) {
+      throw new TypeError('generateButton must be an instance of HTMLButtonElement')
+    }
+    this.generateButton = generateButton
 
     if (!(gridEl instanceof HTMLElement)) {
       throw new TypeError('gridEl must be an instance of HTMLElement')
@@ -120,14 +128,68 @@ export default class BattleshipIO {
   updateFleetSunken(): void {
     if (!this.fleetEl.children.length) return
 
+    const boatsSunken = []
+
+    if (this.heatmap.allowTouching) {
+      return // TODO: find out how to do it when allow touching is on
+    } else {
+      if (this.heatmap.findCorner(BattleshipHeatmap.SUNK, BattleshipHeatmap.HIT)) return
+
+      const grid = this.heatmap.grid
+      let boat = 0
+
+      for (let row = 0; row < this.heatmap.rows; row++) {
+        for (let col = 0; col < this.heatmap.cols; col++) {
+          const value = grid[row][col]
+
+          if (value === BattleshipHeatmap.SUNK) {
+            boat++
+          } else if (boat) {
+            boatsSunken.push(boat)
+            boat = 0
+          }
+        }
+      }
+
+      for (let col = 0; col < this.heatmap.cols; col++) {
+        for (let row = 0; row < this.heatmap.rows; row++) {
+          const value = grid[row][col]
+
+          if (value === BattleshipHeatmap.SUNK) {
+            boat++
+          } else if (boat) {
+            boatsSunken.push(boat)
+            boat = 0
+          }
+        }
+      }
+    }
+
     const fleet = [...this.fleetEl.children]
 
     for (let i = 0; i < this.heatmap.boats.length; i++) {
       const boat = this.heatmap.boats[i]
-      const boatEl = fleet[i]
 
-      boatEl.className = 'sunk'
+      if (!boatsSunken.includes(boat)) {
+        fleet[i].removeAttribute('class')
+        continue
+      }
+      fleet[i].className = 'sunk'
+
+      boatsSunken.splice(
+        boatsSunken.findIndex((b) => b === boat),
+        1
+      )
     }
+  }
+
+  updateGenerateButton(): void {
+    if (!this.generateButton.lastChild) return
+
+    this.generateButton.lastChild.textContent = this.heatmap.generating
+      ? 'Stop'
+      : 'Generate Heatmap'
+    this.generateButton.className = this.heatmap.generating ? 'stop' : 'start'
   }
 
   renderGrid(): void {
@@ -215,7 +277,7 @@ export default class BattleshipIO {
         // Mark hottest cell
         if (row === hottestRow && col === hottestCol) {
           cellEl.classList.add('hottest')
-          cellEl.title = 'Best shot'
+          cellEl.title = 'Best shot: ' + (heat * 100).toFixed(3) + '% chance of hitting'
         } else {
           cellEl.removeAttribute('title')
         }
