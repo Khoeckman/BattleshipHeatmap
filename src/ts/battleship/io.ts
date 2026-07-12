@@ -175,6 +175,8 @@ export default class BattleshipIO {
     minHeat *= 0.9
     maxHeat *= 1.1
 
+    const { row: hottestRow, col: hottestCol } = this.heatmap.getHottestPos()
+
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
       const rowHeatState = heatState[row]
@@ -188,7 +190,7 @@ export default class BattleshipIO {
         rowHeatState[col] = heatString
 
         const cellEl = rowEls[col]
-        const isCursor = this.cursor.row === row && this.cursor.col === col
+        const isCursor = row === this.cursor.row && col === this.cursor.col
 
         if (!heat) {
           cellEl.className = isCursor ? 'cell cursor' : 'cell'
@@ -196,6 +198,14 @@ export default class BattleshipIO {
         }
         cellEl.textContent = heatString
         cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
+
+        // Mark hottest cell
+        if (row === hottestRow && col === hottestCol) {
+          cellEl.classList.add('hottest')
+          cellEl.title = 'Best shot'
+        } else {
+          cellEl.removeAttribute('title')
+        }
 
         const normalizedHeat = maxHeat === minHeat ? heat : (heat - minHeat) / (maxHeat - minHeat)
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
