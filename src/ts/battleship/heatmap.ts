@@ -63,6 +63,29 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return this.heatmap[row][cell] / Math.max(1, this.accumulated) // Normalize
   }
 
+
+  getHeatRange(): { min: number; max: number } {
+    let min = Infinity
+    let max = -Infinity
+
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        const heat = this.heatmap[row][col]
+        if (heat < min) min = heat
+        else if (heat > max) max = heat
+      }
+    }
+
+    // This is more efficient than changing the if-else to an if-if
+    if (max === -Infinity) max = min
+
+    // Normalize
+    min = min / Math.max(1, this.accumulated)
+    max = max / Math.max(1, this.accumulated)
+
+    return { min, max }
+  }
+
   resize(rows: number, cols: number): void {
     super.resize(rows, cols)
 

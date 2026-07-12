@@ -106,10 +106,27 @@ export default class BattleshipIO {
       }
       this.fleetEl.appendChild(boatEl)
     }
+
+    this.updateFleetSunken()
+  }
+
+  updateFleetSunken(): void {
+    if (!this.fleetEl.children.length) return
+
+    const fleet = [...this.fleetEl.children]
+
+    for (let i = 0; i < this.heatmap.boats.length; i++) {
+      const boat = this.heatmap.boats[i]
+      const boatEl = fleet[i]
+
+      boatEl.className = 'sunk'
+    }
   }
 
   renderGrid(): void {
     this.#invalidateHeatCache()
+    this.updateFleetSunken()
+
     this.gridEl.innerHTML = ''
 
     for (let row = 0; row < this.heatmap.rows; row++) {
@@ -152,6 +169,9 @@ export default class BattleshipIO {
 
   renderHeatmap(): void {
     const { els: heatEls, state: heatState } = this.#getHeatCache()
+    let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
+    minHeat *= 0.9
+    maxHeat *= 1.1
 
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
@@ -161,7 +181,7 @@ export default class BattleshipIO {
         if (this.heatmap.getCell(row, col) !== 0) continue
 
         const heat = this.heatmap.getHeat(row, col)
-        const heatString = (heat * 100).toFixed(1)
+        const heatString = (heat * 100).toFixed(heat < 0.1 ? 2 : 1)
         if (rowHeatState[col] === heatString) continue
         rowHeatState[col] = heatString
 
@@ -174,7 +194,9 @@ export default class BattleshipIO {
         }
         cellEl.textContent = heatString
         cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
-        cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(heat)) * 50))
+
+        const normalizedHeat = maxHeat === minHeat ? heat : (heat - minHeat) / (maxHeat - minHeat)
+        cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
     }
   }
@@ -261,8 +283,13 @@ export default class BattleshipIO {
     if (!(value >= 0 && value < 4)) {
       throw new RangeError('value must be between 0 and 3')
     }
+
+    const { row, col } = this.cursor
+
+    if (this.heatmap.getCell(row, col) === value) return
+
     this.heatmap.generating = false
-    this.heatmap.setCell(this.cursor.row, this.cursor.col, value)
+    this.heatmap.setCell(row, col, value)
     this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()
   }
