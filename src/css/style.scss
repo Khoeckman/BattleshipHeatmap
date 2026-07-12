@@ -8,6 +8,8 @@
 
 :root {
   @include root;
+
+  color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {

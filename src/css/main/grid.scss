@@ -1,9 +1,9 @@
 @use '../mixins.scss' as *;
 
 #grid {
-  @include root;
+  // @include root;
 
-  background-color: var(--white);
+  background-color: var(--bg);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   box-shadow: 0 0 0.5rem var(--c24);
@@ -34,13 +34,13 @@
     outline-color: var(--pri);
     font-size: 1.5rem;
     font-weight: bold;
+    color: var(--bg);
     width: 2.5rem;
     height: 2.5rem;
     transition:
       background-color 125ms,
       border-color 125ms,
-      color 125ms,
-      outline 125ms;
+      color 125ms;
 
     &:hover,
     &:focus-visible {
@@ -49,18 +49,48 @@
     }
 
     &.sunk {
-      background-color: var(--c48);
+      background-color: var(--c72);
       color: var(--bg);
+      color: contrast-color(var(--c72));
     }
 
     &.hit {
       background-color: var(--error);
-      color: var(--white);
+      color: var(--bg);
+      color: contrast-color(var(--error));
     }
 
     &.miss {
       background-color: #e2f2ff;
+
+      @media (prefers-color-scheme: dark) {
+        background-color: #00111f;
+      }
+
       color: var(--pri);
+    }
+
+    &.chance {
+      --background: hsl(var(--hue), 100%, calc(var(--lightness) * 1%));
+
+      @media (prefers-color-scheme: dark) {
+        --background: hsl(var(--hue), 100%, calc(100% - var(--lightness) * 1%));
+      }
+
+      background-color: var(--background);
+      font-size: 0.8rem;
+      line-height: 0.8;
+      color: contrast-color(var(--background));
+    }
+
+    &.cursor {
+      outline: 0.125rem solid var(--pri);
+      outline-offset: -1px;
+
+      &.hit,
+      &.chance {
+        outline-color: var(--fg);
+      }
     }
 
     &.single {
@@ -81,18 +111,6 @@
 
     &.bow-w {
       border-radius: 50% 0 0 50%;
-    }
-
-    &.chance {
-      background-color: hsl(var(--hue), 100%, calc(var(--lightness) * 1%));
-      font-size: 0.8rem;
-      line-height: 0.8;
-      color: var(--color);
-    }
-
-    &.cursor {
-      outline: 0.125rem solid var(--pri);
-      outline-offset: -1px;
     }
   }
 }
