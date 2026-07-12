@@ -49,13 +49,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     clearTimeout(this.generationTimeoutId)
   }
 
-  /**
-   * Get the heat value for a specific cell in the heatmap.
-   *
-   * @param row The row index of the cell.
-   * @param cell The column index of the cell.
-   * @returns The heat value for the specified cell.
-   */
   getHeat(row: number, cell: number): number {
     if (row < 0 || row >= this.rows || cell < 0 || cell >= this.cols) {
       throw new RangeError('cell coordinates out of bounds')
@@ -69,7 +62,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
+        const value = this.grid[row][col]
         const heat = this.heatmap[row][col]
+
+        if (value === BattleshipHeatmap.SUNK || value === BattleshipHeatmap.HIT) continue
 
         if (heat > hottest) {
           hottest = heat
