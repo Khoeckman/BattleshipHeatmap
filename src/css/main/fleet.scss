@@ -1,0 +1,38 @@
+@use '../mixins.scss' as *;
+
+#fleet {
+  @include list;
+
+  display: flex;
+  flex-flow: row wrap;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+
+  li {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 1px;
+    background-color: transparent;
+    border-radius: 1rem;
+
+    div {
+      background-color: var(--c72);
+      width: 1rem;
+      height: 1rem;
+
+      &:first-child {
+        border-radius: 50% 0 0 50%;
+      }
+
+      &:last-child {
+        border-top-right-radius: 50%;
+        border-bottom-right-radius: 50%;
+      }
+
+      &.sunk {
+        background-color: var(--c24);
+      }
+    }
+  }
+}

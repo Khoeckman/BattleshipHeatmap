@@ -1,10 +1,11 @@
-@use './mixins.scss' as *;
+@use 'mixins.scss' as *;
 
 @use 'main/main.scss';
+@use 'main/fleet.scss';
 @use 'main/grid.scss';
 @use 'footer.scss';
 
-@use './credits.scss';
+@use 'credits.scss';
 
 :root {
   @include root;
