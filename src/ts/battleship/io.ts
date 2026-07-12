@@ -384,6 +384,8 @@ export default class BattleshipIO {
       case 'w':
         this.setCursorCell(BattleshipHeatmap.MISS)
         break
+      case 'g':
+        this.heatmap.startGenerating()
       default:
         preventDefault = false
     }
