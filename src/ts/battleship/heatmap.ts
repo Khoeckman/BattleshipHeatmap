@@ -25,7 +25,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
 
-  constructor(grid: BattleshipGrid, generationSeconds: number) {
+  public onStartCalculating: () => void
+  public onStopCalculating: () => void
+
+  constructor(
+    grid: BattleshipGrid,
+    generationSeconds: number,
+    onStartCalculating: () => void,
+    onStopCalculating: () => void
+  ) {
     if (!(grid instanceof BattleshipGrid)) {
       throw new TypeError('grid must be an instance of BattleshipGrid')
     }
@@ -35,7 +43,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       .fill(0)
       .map(() => Array(this.cols).fill(0))
 
+    if (!Number.isFinite(generationSeconds)) {
+      throw new TypeError('generationSeconds must be a finite number')
+    }
     this.generationSeconds = generationSeconds
+
+    if (typeof onStartCalculating !== 'function') {
+      throw new TypeError('onStartCalculating must be a function')
+    }
+    this.onStartCalculating = onStartCalculating
+
+    if (typeof onStopCalculating !== 'function') {
+      throw new TypeError('onStopCalculating must be a function')
+    }
+    this.onStopCalculating = onStopCalculating
   }
 
   get generating(): boolean {
@@ -44,9 +65,12 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   set generating(value: boolean) {
     this.#generating = value
-    if (value) return
-
+    if (value) {
+      this.onStartCalculating()
+      return
+    }
     clearTimeout(this.generationTimeoutId)
+    this.onStopCalculating()
   }
 
   getHeat(row: number, cell: number): number {
@@ -138,17 +162,17 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   /**
    * Calculate a heatmap by accumulating many random valid configurations.
    */
-  startGenerating(onTimeout?: () => void): void {
+  startGenerating(onCalculatingTimeout?: () => void): void {
     if (this.#generating) return
 
-    this.#generating = true
+    this.generating = true
     this.generationStartTs = performance.now()
     this.resetHeatmap()
 
     // Keep generating until timeout fires
     this.generationTimeoutId = setTimeout(() => {
-      this.#generating = false
-      onTimeout?.()
+      this.generating = false
+      onCalculatingTimeout?.()
     }, this.generationSeconds * 1000)
 
     for (let thread = 0; thread < navigator.hardwareConcurrency; thread++) this.#thread()

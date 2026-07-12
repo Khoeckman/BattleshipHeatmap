@@ -82,7 +82,14 @@ export default class BattleshipIO {
       settings.allowTouching,
       settings.grid
     )
-    this.heatmap = new BattleshipHeatmap(grid, settings.generationSeconds)
+    const onStartCalculating = () => this.updateGenerateButton()
+    const onStopCalculating = () => this.updateGenerateButton()
+    this.heatmap = new BattleshipHeatmap(
+      grid,
+      settings.generationSeconds,
+      onStartCalculating,
+      onStopCalculating
+    )
 
     this.#handleClick.bind(this)
     this.#handleKeyDown.bind(this)
@@ -341,9 +348,7 @@ export default class BattleshipIO {
     this.heatmap.startGenerating(() => this.renderHeatmap(true))
     this.renderGrid()
 
-    requestAnimationFrame(() => {
-      this.scheduleRenderHeatmap()
-    })
+    requestAnimationFrame(() => this.scheduleRenderHeatmap())
   }
 
   #handleClick(e: PointerEvent): void {

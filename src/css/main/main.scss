@@ -81,6 +81,9 @@ main {
     color: var(--black);
     padding: 0.75rem 0.75rem;
     transition:
+      background-color 125ms ease-in-out,
+      color 125ms ease-in-out,
+      box-shadow 125ms ease-in-out,
       filter 125ms ease-in-out,
       transform 125ms ease-in-out;
 
@@ -89,12 +92,37 @@ main {
       height: 1rem;
     }
 
-    &:hover {
-      filter: brightness(0.8) saturate(1.5);
+    &:not(.error):hover {
+      background-color: var(--bg);
+      color: var(--pri);
+      box-shadow: 0 0 0.5rem var(--pri);
     }
 
     &:active {
       transform: scale(0.95);
+    }
+
+    &.error {
+      background-color: var(--error);
+      color: var(--white);
+
+      &:hover {
+        background-color: var(--bg);
+        color: var(--error);
+        box-shadow: 0 0 0.5rem var(--error);
+      }
+    }
+  }
+
+  #generate {
+    min-width: 13rem;
+
+    &.start svg.stop {
+      display: none;
+    }
+
+    &.stop svg.start {
+      display: none;
     }
   }
 

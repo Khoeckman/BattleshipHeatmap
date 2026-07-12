@@ -13,6 +13,7 @@ const boatsInput = document.getElementById('boats') as HTMLInputElement
 const allowTouchingCheckbox = document.getElementById('allowTouching') as HTMLInputElement
 const generationSecondsInput = document.getElementById('generationSeconds') as HTMLInputElement
 
+const generateButton = document.getElementById('generate') as HTMLButtonElement
 const clearButton = document.getElementById('clear') as HTMLButtonElement
 
 // Input buttons
@@ -37,11 +38,11 @@ generationSecondsInput.valueAsNumber = settingsStore.value.generationSeconds
 let io: BattleshipIO
 
 try {
-  io = new BattleshipIO(settingsStore, gridEl, fleetEl, dataEls)
+  io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
 } catch (err) {
   window.alert(err instanceof Error ? err.message : err)
   settingsStore.reset()
-  io = new BattleshipIO(settingsStore, gridEl, fleetEl, dataEls)
+  io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
 }
 
 // Settings form
