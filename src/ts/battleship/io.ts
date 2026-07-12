@@ -337,6 +337,15 @@ export default class BattleshipIO {
     this.settingsStore.set('allowTouching', this.heatmap.allowTouching)
   }
 
+  startGenerating(): void {
+    this.heatmap.startGenerating(() => this.renderHeatmap(true))
+    this.renderGrid()
+
+    requestAnimationFrame(() => {
+      this.scheduleRenderHeatmap()
+    })
+  }
+
   #handleClick(e: PointerEvent): void {
     const target = e.target as HTMLElement
 
@@ -391,7 +400,8 @@ export default class BattleshipIO {
         this.setCursorCell(BattleshipHeatmap.MISS)
         break
       case 'g':
-        this.heatmap.startGenerating()
+        this.startGenerating()
+        break
       default:
         preventDefault = false
     }
