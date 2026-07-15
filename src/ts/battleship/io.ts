@@ -260,14 +260,18 @@ export default class BattleshipIO {
   }
 
   scheduleRenderHeatmap(): void {
+    this.renderGenerationInfo()
+
+    if (this.heatmap.generating) requestAnimationFrame(() => this.scheduleRenderHeatmap())
+
+    // Calculate if a heatmap update may be queued
     const now = performance.now()
-    const cells = this.heatmap.rows * this.heatmap.cols
-    const frameGapMs = Math.min(250, cells / 2.5)
+    const minFrameTimeMs = Math.min(250, (this.heatmap.rows * this.heatmap.cols) / 2.5)
 
-    if (this.heatmap.generating && now - this.#lastFrameTs < frameGapMs) return
-
+    if (this.heatmap.generating && now - this.#lastFrameTs < minFrameTimeMs) return
     this.#lastFrameTs = now
 
+    // Cancel the pending frame as its data is no longer relevant
     this.#renderHeatmapController.abort()
     this.#renderHeatmapController = new AbortController()
 
@@ -279,18 +283,13 @@ export default class BattleshipIO {
       .catch((err) => {
         if (err.name !== 'AbortError') throw err
       })
-
-    this.renderGenerationInfo()
-
-    if (!this.heatmap.generating) return
-
-    requestAnimationFrame(() => this.scheduleRenderHeatmap())
   }
 
   renderGenerationInfo(): void {
-    const generationMs = performance.now() - this.heatmap.generationStartTs
+    const generationTimeMs = performance.now() - this.heatmap.generationStartTs
 
-    this.dataEls.timeData.innerText = (generationMs / 1000).toFixed(1) + 's'
+    // Convert to seconds with one decimal
+    this.dataEls.timeData.innerText = (generationTimeMs / 1000).toFixed(1) + 's'
 
     this.dataEls.attemptsData.innerText = Intl.NumberFormat('en-US', {
       notation: 'compact',
