@@ -154,10 +154,13 @@ export default class BattleshipIO {
   updateGenerateButton(): void {
     if (!this.generateButton.lastChild) return
 
-    this.generateButton.lastChild.textContent = this.heatmap.generating
-      ? 'Stop'
-      : 'Generate Heatmap'
-    this.generateButton.className = this.heatmap.generating ? 'stop' : 'start'
+    if (this.heatmap.generating) {
+      this.generateButton.lastChild.textContent = 'Stop'
+      this.generateButton.className = 'stop'
+      return
+    }
+    this.generateButton.lastChild.textContent = 'Generate Heatmap'
+    this.generateButton.className = 'start'
   }
 
   renderGrid(): void {
