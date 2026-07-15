@@ -180,6 +180,8 @@ export default class BattleshipGrid {
   updateBoatsSunken(): void {
     this.#boatsSunken = []
 
+    const usedCells = new Set<string>()
+
     if (this.allowTouching) {
       return // TODO: find out how to do it when allow touching is on
     } else {
@@ -193,9 +195,11 @@ export default class BattleshipGrid {
 
           if (value === BattleshipGrid.SUNK) {
             boat++
+            usedCells.add(row + ',' + col)
           } else if (boat) {
             this.#boatsSunken.push(boat)
             boat = 0
+            usedCells.add(row + ',' + col)
           }
         }
       }
@@ -203,6 +207,9 @@ export default class BattleshipGrid {
       for (let col = 0; col < this.cols; col++) {
         for (let row = 0; row < this.rows; row++) {
           const value = this.grid[row][col]
+
+          // Check if this cell has already been used for a boat in the other orientation
+          if (usedCells.has(row + ',' + col)) continue
 
           if (value === BattleshipGrid.SUNK) {
             boat++
@@ -216,7 +223,7 @@ export default class BattleshipGrid {
 
     // Update boatsSunkenValid
     this.#boatsSunkenValid = true
-    const boatsSet = new Set(this.#boats)
+    const boatsSet = new Set(this.#boatsSunken)
 
     for (const boat of boatsSet) {
       const boatAmount = this.#boats.filter((b) => b === boat).length
