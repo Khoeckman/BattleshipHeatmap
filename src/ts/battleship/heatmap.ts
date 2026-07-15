@@ -1,10 +1,6 @@
 import BattleshipGrid from './grid'
 
 export default class BattleshipHeatmap extends BattleshipGrid {
-  public static readonly EMPTY = 0
-  public static readonly SUNK = 1
-  public static readonly HIT = 2
-  public static readonly MISS = 3
 
   /** The number of attempts to generate a valid configuration */
   public attempts = 0
@@ -143,20 +139,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     this.attempts = 0
     this.accumulated = 0
-  }
-
-  findCorner(...values: number[]): { row: number; col: number } | false {
-    for (let row = 0; row < this.rows - 1; row++) {
-      for (let col = 0; col < this.cols - 1; col++) {
-        if (
-          values.includes(this.grid[row][col]) &&
-          values.includes(this.grid[row + 1][col]) &&
-          values.includes(this.grid[row][col + 1])
-        )
-          return { row, col }
-      }
-    }
-    return false
   }
 
   /**

@@ -35,5 +35,9 @@
     &.sunk div {
       background-color: var(--c24);
     }
+
+    &:not(.sunk):hover div {
+      background-color: var(--fg);
+    }
   }
 }

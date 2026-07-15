@@ -1,7 +1,20 @@
 export default class BattleshipGrid {
+  public static readonly EMPTY = 0
+  public static readonly SUNK = 1
+  public static readonly HIT = 2
+  public static readonly MISS = 3
+
   #rows = 0
   #cols = 0
   #boats: number[] = []
+
+  /**
+   * Array of the lengths of the boats that are sunken
+   * based on adjacent cells with value SUNK
+   */
+  #boatsSunken: number[] = []
+  #boatsSunkenValid: boolean = true
+
   #allowTouching = false
 
   /**
@@ -29,6 +42,7 @@ export default class BattleshipGrid {
 
     if (grid.length) {
       this.grid = grid
+      this.updateBoatsSunken()
     } else {
       this.grid = Array(this.rows)
         .fill(0)
@@ -70,6 +84,14 @@ export default class BattleshipGrid {
       throw new RangeError('boatLengths must contain at least one boat')
     }
     this.#boats = [...value].sort((a, b) => b - a)
+  }
+
+  get boatsSunken(): number[] {
+    return this.#boatsSunken
+  }
+
+  get boatsSunkenValid(): boolean {
+    return this.#boatsSunkenValid
   }
 
   get allowTouching(): boolean {
@@ -135,6 +157,58 @@ export default class BattleshipGrid {
     for (let row in this.grid) {
       for (let col in this.grid[row]) {
         this.grid[row][col] = 0
+      }
+    }
+  }
+
+  findCorner(...values: number[]): { row: number; col: number } | false {
+    for (let row = 0; row < this.rows - 1; row++) {
+      for (let col = 0; col < this.cols - 1; col++) {
+        if (
+          values.includes(this.grid[row][col]) &&
+          values.includes(this.grid[row + 1][col]) &&
+          values.includes(this.grid[row][col + 1])
+        )
+          return { row, col }
+      }
+    }
+    return false
+  }
+
+  updateBoatsSunken(): void {
+    this.#boatsSunken = []
+
+    if (this.allowTouching) {
+      return // TODO: find out how to do it when allow touching is on
+    } else {
+      if (this.findCorner(BattleshipGrid.SUNK, BattleshipGrid.HIT)) return
+
+      let boat = 0
+
+      for (let row = 0; row < this.rows; row++) {
+        for (let col = 0; col < this.cols; col++) {
+          const value = this.grid[row][col]
+
+          if (value === BattleshipGrid.SUNK) {
+            boat++
+          } else if (boat) {
+            this.#boatsSunken.push(boat)
+            boat = 0
+          }
+        }
+      }
+
+      for (let col = 0; col < this.cols; col++) {
+        for (let row = 0; row < this.rows; row++) {
+          const value = this.grid[row][col]
+
+          if (value === BattleshipGrid.SUNK) {
+            boat++
+          } else if (boat) {
+            this.#boatsSunken.push(boat)
+            boat = 0
+          }
+        }
       }
     }
   }

@@ -121,60 +121,28 @@ export default class BattleshipIO {
       }
       this.fleetEl.appendChild(boatEl)
     }
-
     this.updateFleetSunken()
   }
 
   updateFleetSunken(): void {
     if (!this.fleetEl.children.length) return
 
-    const boatsSunken = []
+    this.heatmap.updateBoatsSunken()
+    const boatsSunken = structuredClone(this.heatmap.boatsSunken)
 
-    if (this.heatmap.allowTouching) {
-      return // TODO: find out how to do it when allow touching is on
-    } else {
-      if (this.heatmap.findCorner(BattleshipHeatmap.SUNK, BattleshipHeatmap.HIT)) return
-
-      const grid = this.heatmap.grid
-      let boat = 0
-
-      for (let row = 0; row < this.heatmap.rows; row++) {
-        for (let col = 0; col < this.heatmap.cols; col++) {
-          const value = grid[row][col]
-
-          if (value === BattleshipHeatmap.SUNK) {
-            boat++
-          } else if (boat) {
-            boatsSunken.push(boat)
-            boat = 0
-          }
-        }
-      }
-
-      for (let col = 0; col < this.heatmap.cols; col++) {
-        for (let row = 0; row < this.heatmap.rows; row++) {
-          const value = grid[row][col]
-
-          if (value === BattleshipHeatmap.SUNK) {
-            boat++
-          } else if (boat) {
-            boatsSunken.push(boat)
-            boat = 0
-          }
-        }
-      }
-    }
-
-    const fleet = [...this.fleetEl.children]
+    const fleet = [...this.fleetEl.children] as HTMLElement[]
 
     for (let i = 0; i < this.heatmap.boats.length; i++) {
       const boat = this.heatmap.boats[i]
+      const boatEl = fleet[i]
 
       if (!boatsSunken.includes(boat)) {
-        fleet[i].removeAttribute('class')
+        boatEl.removeAttribute('class')
         continue
       }
-      fleet[i].className = 'sunk'
+
+      boatEl.className = 'sunk'
+      if (boat >= 2 && boat <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boat]
 
       boatsSunken.splice(
         boatsSunken.findIndex((b) => b === boat),
