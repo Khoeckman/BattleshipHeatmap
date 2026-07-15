@@ -19,6 +19,8 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [V] make blue cursor more visible over blue cells
 
+[V] When a modified is down, ignore the keypress
+
 [ ] Allow multiple hot spots (green) if chances are within 1% of min-max range
 
 [ ] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
@@ -38,4 +40,4 @@ find out how to handle a square of sunken boats when allow touching is on
 ## Progress
 
 Done: 8
-Total: 15
+Total: 16

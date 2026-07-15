@@ -380,8 +380,8 @@ export default class BattleshipIO {
 
       window.alert(
         `More boats of size ${boat} are marked as sunken than exist on the board. 
-    Total: ${total}
-    Sunken: ${sunken}`
+    On the board: ${total}
+    Marked as sunken: ${sunken}`
       )
       return
     }
@@ -409,10 +409,11 @@ export default class BattleshipIO {
   #handleKeyDown(e: KeyboardEvent): void {
     if (
       document.activeElement instanceof HTMLElement &&
-      (document.activeElement.matches('input, textarea, select') ||
-        document.activeElement.isContentEditable)
+      document.activeElement.matches('input, textarea, select')
     )
       return
+
+    if (e.ctrlKey || e.altKey || e.shiftKey) return
 
     let preventDefault = true
 
