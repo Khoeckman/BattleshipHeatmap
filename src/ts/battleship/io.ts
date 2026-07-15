@@ -257,14 +257,6 @@ export default class BattleshipIO {
   }
 
   scheduleRenderHeatmap(): void {
-    this.renderGenerationInfo()
-
-    if (!this.heatmap.generating) return
-
-    requestAnimationFrame(() => {
-      this.scheduleRenderHeatmap()
-    })
-
     const now = performance.now()
     const cells = this.heatmap.rows * this.heatmap.cols
     const frameGapMs = Math.min(250, cells / 2.5)
@@ -284,6 +276,12 @@ export default class BattleshipIO {
       .catch((err) => {
         if (err.name !== 'AbortError') throw err
       })
+
+    this.renderGenerationInfo()
+
+    if (!this.heatmap.generating) return
+
+    requestAnimationFrame(() => this.scheduleRenderHeatmap())
   }
 
   renderGenerationInfo(): void {
@@ -375,10 +373,13 @@ export default class BattleshipIO {
   }
 
   startGenerating(): void {
+    const wasGenerating = this.heatmap.generating
+
+    this.heatmap.generating = false
     this.heatmap.startGenerating(() => this.renderHeatmap(true))
     this.renderGrid()
 
-    requestAnimationFrame(() => this.scheduleRenderHeatmap())
+    if (!wasGenerating) requestAnimationFrame(() => this.scheduleRenderHeatmap())
   }
 
   #handleClick(e: PointerEvent): void {

@@ -1,6 +1,7 @@
 import BattleshipGrid from './grid'
 
 export default class BattleshipHeatmap extends BattleshipGrid {
+  #threads = 0
 
   /** The number of attempts to generate a valid configuration */
   public attempts = 0
@@ -171,7 +172,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       onCalculatingTimeout?.()
     }, this.generationSeconds * 1000)
 
-    for (let thread = 0; thread < navigator.hardwareConcurrency; thread++) this.#thread()
+    for (; this.#threads < navigator.hardwareConcurrency; this.#threads++) this.#thread()
   }
 
   async #thread(): Promise<void> {
@@ -184,6 +185,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
       if (!this.#generating) {
         worker.terminate()
+        this.#threads--
         return
       }
       this.#generateConfig(worker)

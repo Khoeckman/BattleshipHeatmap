@@ -95,7 +95,9 @@ generationSecondsInput.addEventListener('change', function () {
 settingsForm.addEventListener('submit', function (e) {
   e.preventDefault()
 
-  if (io.heatmap.generating) {
+  const usedSubmitButton = document.activeElement === e.submitter
+
+  if (io.heatmap.generating && usedSubmitButton) {
     io.heatmap.generating = false
     return
   }
