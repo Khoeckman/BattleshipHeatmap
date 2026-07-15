@@ -1,3 +1,5 @@
+type BoatsSunkenInfo = { boat: number; total: number; sunken: number }
+
 export default class BattleshipGrid {
   public static readonly EMPTY = 0
   public static readonly SUNK = 1
@@ -13,7 +15,7 @@ export default class BattleshipGrid {
    * based on adjacent cells with value SUNK
    */
   #boatsSunken: number[] = []
-  #boatsSunkenValid: boolean = true
+  #boatsSunkenValid: true | BoatsSunkenInfo = true
 
   #allowTouching = false
 
@@ -90,7 +92,7 @@ export default class BattleshipGrid {
     return this.#boatsSunken
   }
 
-  get boatsSunkenValid(): boolean {
+  get boatsSunkenValid(): true | BoatsSunkenInfo {
     return this.#boatsSunkenValid
   }
 
@@ -209,6 +211,20 @@ export default class BattleshipGrid {
             boat = 0
           }
         }
+      }
+    }
+
+    // Update boatsSunkenValid
+    this.#boatsSunkenValid = true
+    const boatsSet = new Set(this.#boats)
+
+    for (const boat of boatsSet) {
+      const boatAmount = this.#boats.filter((b) => b === boat).length
+      const boatSunkenAmount = this.#boatsSunken.filter((b) => b === boat).length
+
+      if (boatSunkenAmount > boatAmount) {
+        this.#boatsSunkenValid = { boat, total: boatAmount, sunken: boatSunkenAmount }
+        break
       }
     }
   }

@@ -376,6 +376,17 @@ export default class BattleshipIO {
   }
 
   startGenerating(): void {
+    if (this.heatmap.boatsSunkenValid !== true) {
+      const { boat, total, sunken } = this.heatmap.boatsSunkenValid
+
+      window.alert(
+        `More boats of size ${boat} are marked as sunken than exist on the board. 
+    Total: ${total}
+    Sunken: ${sunken}`
+      )
+      return
+    }
+
     const wasGenerating = this.heatmap.generating
 
     this.heatmap.generating = false
