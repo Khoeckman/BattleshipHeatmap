@@ -1,5 +1,7 @@
 @use 'mixins.scss' as *;
 
+@use 'helper/fancyLink.scss';
+
 @use 'main/main.scss';
 @use 'main/fleet.scss';
 @use 'main/grid.scss';
@@ -53,4 +55,8 @@ body {
   margin: 0 auto;
   max-width: 60em;
   min-height: 100dvh;
+}
+
+a {
+  color: var(--pri);
 }
