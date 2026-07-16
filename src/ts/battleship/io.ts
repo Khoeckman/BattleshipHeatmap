@@ -449,7 +449,7 @@ export default class BattleshipIO {
       case 'w':
         this.setCursorCell(BattleshipHeatmap.MISS)
         break
-      case 'g':
+      case 'Enter':
         this.startGenerating()
         break
       default:
