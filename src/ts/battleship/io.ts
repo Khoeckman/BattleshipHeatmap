@@ -253,7 +253,7 @@ export default class BattleshipIO {
           cellEl.removeAttribute('title')
         }
 
-        const normalizedHeat = maxHeat === minHeat ? heat : (heat - minHeat) / (maxHeat - minHeat)
+        const normalizedHeat = (heat - minHeat) / (maxHeat - minHeat)
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
     }
