@@ -215,8 +215,6 @@ export default class BattleshipIO {
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
     const hotspots = this.heatmap.getHotspots(maxHeat * 0.99)
 
-    console.log(maxHeat)
-
     minHeat *= 0.9
     maxHeat *= 1.1
 
@@ -253,12 +251,7 @@ export default class BattleshipIO {
         cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
 
         // Mark hotspots
-        if (isHotspot) {
-          cellEl.classList.add('hotspot')
-          // cellEl.title = 'Best shot: ' + (heat * 100).toFixed(3) + '% chance of hitting'
-        } else {
-          cellEl.removeAttribute('title')
-        }
+        if (isHotspot) cellEl.classList.add('hotspot')
 
         const normalizedHeat = (heat - minHeat) / (maxHeat - minHeat)
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))

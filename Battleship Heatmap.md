@@ -21,7 +21,9 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [V] When a modifier is down, ignore the keypress
 
-[ ] Allow multiple hot spots (green) if chances are very close within min-max range
+[V] Allow multiple hot spots (green) if chances are very close within min-max range
+
+[ ] Show error when the fleet contains a boat larger than both dimensions
 
 [ ] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
 OR the boats should be placed on the S's, whichever is more performant
@@ -42,5 +44,5 @@ OR the boats should be placed on the S's, whichever is more performant
 
 ## Progress
 
-Done: 8
-Total: 16
+Done: 9
+Total: 18
