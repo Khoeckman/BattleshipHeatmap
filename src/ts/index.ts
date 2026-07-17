@@ -15,6 +15,7 @@ const generationSecondsInput = document.getElementById('generationSeconds') as H
 
 const generateButton = document.getElementById('generate') as HTMLButtonElement
 const clearButton = document.getElementById('clear') as HTMLButtonElement
+const resetButton = document.getElementById('reset') as HTMLButtonElement
 
 // Input buttons
 const inputButtons = [...(document.getElementById('input') as HTMLInputElement).children]
@@ -106,6 +107,12 @@ settingsForm.addEventListener('submit', function (e) {
 
 clearButton.addEventListener('click', () => {
   io.clearGrid()
+})
+
+resetButton.addEventListener('click', () => {
+  io.heatmap.generating = false
+  io.settingsStore.reset()
+  window.location.reload()
 })
 
 // Input buttons
