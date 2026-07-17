@@ -19,9 +19,12 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [V] make blue cursor more visible over blue cells
 
-[V] When a modified is down, ignore the keypress
+[V] When a modifier is down, ignore the keypress
 
-[ ] Allow multiple hot spots (green) if chances are within 1% of min-max range
+[ ] Allow multiple hot spots (green) if chances are very close within min-max range
+
+[ ] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
+OR the boats should be placed on the S's, whichever is more performant
 
 [ ] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
 

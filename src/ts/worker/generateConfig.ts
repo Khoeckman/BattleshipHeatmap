@@ -9,7 +9,7 @@ type Data = {
 }
 
 self.onmessage = function (e: MessageEvent<Data>) {
-  const { rows, cols, boats, allowTouching, grid } = e.data
+  const { rows, cols, boats, /*allowTouching,*/ grid } = e.data
 
   const heatmap = Array(rows)
     .fill(0)
