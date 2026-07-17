@@ -257,6 +257,8 @@ export default class BattleshipIO {
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
     }
+
+    this.heat.hottestPos = { row: hottestRow, col: hottestCol }
   }
 
   scheduleRenderHeatmap(): void {
