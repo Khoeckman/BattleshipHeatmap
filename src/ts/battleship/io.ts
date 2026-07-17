@@ -248,9 +248,9 @@ export default class BattleshipIO {
           continue
         }
         cellEl.textContent = heatString
-        cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
+        cellEl.className = 'cell chance'
 
-        // Mark hotspots
+        if (isCursor) cellEl.classList.add('cursor')
         if (isHotspot) cellEl.classList.add('hotspot')
 
         const normalizedHeat = (heat - minHeat) / (maxHeat - minHeat)
