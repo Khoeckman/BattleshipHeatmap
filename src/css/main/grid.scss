@@ -85,23 +85,26 @@
 
     &.hotspot {
       border-width: 2px;
-      animation: hotspot-blink 1s infinite ease-in-out;
+      box-shadow: inset 0 0 0.25rem var(--bg);
+      animation: hotspot-blink 2s infinite ease-in-out;
     }
 
     @keyframes hotspot-blink {
       from,
+      50%,
       to {
         border-color: var(--success);
       }
 
-      50% {
-        border-color: var(--border);
+      75% {
+        border-color: var(--error);
       }
     }
 
     &.cursor {
       outline: 0.125rem solid var(--pri);
       outline-offset: -1px;
+      box-shadow: inset 0 0 0.25rem var(--bg);
 
       &.hit,
       &.chance {
