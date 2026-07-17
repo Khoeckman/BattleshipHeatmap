@@ -70,11 +70,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.onStopCalculating()
   }
 
-  getHeat(row: number, cell: number): number {
-    if (row < 0 || row >= this.rows || cell < 0 || cell >= this.cols) {
+  getHeat(row: number, col: number): number {
+    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
       throw new RangeError('cell coordinates out of bounds')
     }
-    return this.heatmap[row][cell] / Math.max(1, this.accumulated) // Normalize
+    return this.heatmap[row][col] / Math.max(1, this.accumulated) // Normalize
   }
 
   getHottestPos(): { row: number; col: number } {
