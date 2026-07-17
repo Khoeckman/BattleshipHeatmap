@@ -25,6 +25,13 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [ ] Show error when the fleet contains a boat larger than both dimensions
 
+[ ] Fix input bug, when changing the cols dimension upwards by clicking "start" when the cols-changed event hasn't fired yet causes an error in
+accumulateHeatmap:
+
+    Uncaught TypeError: Cannot read properties of undefined (reading '0')
+    at BattleshipHeatmap.accumulateHeatmap (heatmap.ts:153:45)
+    at Worker.<anonymous> (heatmap.ts:184:24)
+
 [ ] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
 OR the boats should be placed on the S's, whichever is more performant
 
@@ -45,4 +52,4 @@ OR the boats should be placed on the S's, whichever is more performant
 ## Progress
 
 Done: 9
-Total: 18
+Total: 19
