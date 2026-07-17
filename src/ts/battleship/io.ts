@@ -14,7 +14,7 @@ export type DataElements = {
 type HeatCache = {
   els: HTMLElement[][]
   state: string[][]
-  hottestPos: { row: number; col: number }
+  hotspots: { row: number; col: number }[]
 }
 
 export default class BattleshipIO {
@@ -191,7 +191,7 @@ export default class BattleshipIO {
     this.renderCursor()
   }
 
-  private heat: HeatCache = { els: [], state: [], hottestPos: { row: NaN, col: NaN } }
+  private heat: HeatCache = { els: [], state: [], hotspots: [] }
 
   #getHeatCache(): HeatCache {
     if (!this.heat.els.length) {
@@ -205,7 +205,7 @@ export default class BattleshipIO {
   #invalidateHeatCache(): void {
     this.heat.els = []
     this.heat.state = []
-    this.heat.hottestPos = { row: NaN, col: NaN }
+    this.heat.hotspots = []
   }
 
   renderHeatmap(force = false): void {
@@ -213,10 +213,12 @@ export default class BattleshipIO {
 
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
+    const hotspots = this.heatmap.getHotspots(maxHeat * 0.99)
+
+    console.log(maxHeat)
+
     minHeat *= 0.9
     maxHeat *= 1.1
-
-    const { row: hottestRow, col: hottestCol } = this.heatmap.getHottestPos()
 
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
@@ -227,12 +229,17 @@ export default class BattleshipIO {
 
         const heat = this.heatmap.getHeat(row, col)
         const heatString = (heat * 100).toFixed(1)
+        const isHotspot = hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
 
         // Cache heat values and skip if the value remained the same
-        const isSameHottestPos =
-          hottestRow === this.heat.hottestPos.row && hottestCol === this.heat.hottestPos.col
+        if (rowHeatState[col] === heatString) {
+          if (!isHotspot) continue
 
-        if (rowHeatState[col] === heatString && isSameHottestPos) continue
+          // If its a hotspot it must have been cached already
+          if (this.heat.hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col))
+            continue
+        }
+
         rowHeatState[col] = heatString
 
         const cellEl = rowEls[col]
@@ -245,10 +252,10 @@ export default class BattleshipIO {
         cellEl.textContent = heatString
         cellEl.className = isCursor ? 'cell chance cursor' : 'cell chance'
 
-        // Mark hottest cell
-        if (row === hottestRow && col === hottestCol) {
-          cellEl.classList.add('hottest')
-          cellEl.title = 'Best shot: ' + (heat * 100).toFixed(3) + '% chance of hitting'
+        // Mark hotspots
+        if (isHotspot) {
+          cellEl.classList.add('hotspot')
+          // cellEl.title = 'Best shot: ' + (heat * 100).toFixed(3) + '% chance of hitting'
         } else {
           cellEl.removeAttribute('title')
         }
@@ -258,7 +265,7 @@ export default class BattleshipIO {
       }
     }
 
-    this.heat.hottestPos = { row: hottestRow, col: hottestCol }
+    this.heat.hotspots = hotspots
   }
 
   scheduleRenderHeatmap(): void {

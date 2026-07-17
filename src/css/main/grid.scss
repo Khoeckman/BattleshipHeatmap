@@ -83,12 +83,12 @@
       color: contrast-color(var(--background));
     }
 
-    &.hottest {
+    &.hotspot {
       border-width: 2px;
-      animation: hottest-blink 1s infinite ease-in-out;
+      animation: hotspot-blink 1s infinite ease-in-out;
     }
 
-    @keyframes hottest-blink {
+    @keyframes hotspot-blink {
       from,
       to {
         border-color: var(--success);
@@ -108,7 +108,7 @@
         outline-color: var(--fg);
       }
 
-      &.hottest {
+      &.hotspot {
         outline-color: var(--success);
       }
     }

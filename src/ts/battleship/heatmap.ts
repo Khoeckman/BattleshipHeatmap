@@ -77,26 +77,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return this.heatmap[row][col] / Math.max(1, this.accumulated) // Normalize
   }
 
-  getHottestPos(): { row: number; col: number } {
-    let hottest = -Infinity
-    let hottestPos = { row: 0, col: 0 }
-
-    for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
-        const value = this.grid[row][col]
-        const heat = this.heatmap[row][col]
-
-        if (value === BattleshipHeatmap.SUNK || value === BattleshipHeatmap.HIT) continue
-
-        if (heat > hottest) {
-          hottest = heat
-          hottestPos = { row, col }
-        }
-      }
-    }
-    return hottestPos
-  }
-
   getHeatRange(): { min: number; max: number } {
     let min = Infinity
     let max = -Infinity
@@ -120,6 +100,23 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     max = max / Math.max(1, this.accumulated)
 
     return { min, max }
+  }
+
+  getHotspots(minHotspotHeat: number): { row: number; col: number }[] {
+    const hotspots: { row: number; col: number }[] = []
+
+    if (!minHotspotHeat) return hotspots
+
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        const value = this.grid[row][col]
+        if (value === BattleshipHeatmap.SUNK || value === BattleshipHeatmap.HIT) continue
+
+        const heat = this.heatmap[row][col] / Math.max(1, this.accumulated)
+        if (heat >= minHotspotHeat) hotspots.push({ row, col })
+      }
+    }
+    return hotspots
   }
 
   resize(rows: number, cols: number): void {
