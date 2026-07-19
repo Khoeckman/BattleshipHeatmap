@@ -15,14 +15,14 @@ self.onmessage = function (e: MessageEvent<Data>) {
     .fill(0)
     .map(() => Array(cols).fill(0))
 
-  let row
-  let col
-
   // Fisher-Yates shuffle
   for (let i = boats.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[boats[i], boats[j]] = [boats[j], boats[i]]
   }
+
+  let row
+  let col
 
   for (const boat of boats) {
     // The highest coordinates for the lowest coordinate of the boat to be at

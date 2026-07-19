@@ -1,6 +1,6 @@
 # Battleship Heatmap
 
-A custom multithreaded battleship probability calculator and solver. Input your board size, boats, and clues to find the best next shot.
+A customizable multithreaded battleship probability calculator and solver. Input your board size, boats, and clues to find the best next shot.
 
 ## Development
 
