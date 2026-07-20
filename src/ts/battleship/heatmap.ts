@@ -34,7 +34,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (!(grid instanceof BattleshipGrid)) {
       throw new TypeError('grid must be an instance of BattleshipGrid')
     }
-    super(grid.rows, grid.cols, grid.boats, grid.allowTouching, grid.grid)
+    super(grid.rows, grid.cols, grid.boatLengths, grid.allowTouching, grid.grid)
 
     this.heatmap = Array(this.rows)
       .fill(0)
@@ -56,11 +56,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.onStopCalculating = onStopCalculating
   }
 
-  get generating(): boolean {
+  get generating() {
     return this.#generating
   }
 
-  set generating(value: boolean) {
+  set generating(value) {
     this.#generating = value
     if (value) {
       this.onStartCalculating()
@@ -197,7 +197,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     worker.postMessage({
       rows: this.rows,
       cols: this.cols,
-      boats: this.boats,
+      boatsLengths: this.boatLengths,
       allowTouching: this.allowTouching,
       grid: this.grid,
     })

@@ -3,31 +3,31 @@ import BattleshipHeatmap from '../battleship/heatmap'
 type Data = {
   rows: number
   cols: number
-  boats: number[]
+  boatsLengths: number[]
   allowTouching: boolean
   grid: number[][]
 }
 
 self.onmessage = function (e: MessageEvent<Data>) {
-  const { rows, cols, boats, /*allowTouching,*/ grid } = e.data
+  const { rows, cols, boatsLengths, /*allowTouching,*/ grid } = e.data
 
   const heatmap = Array(rows)
     .fill(0)
     .map(() => Array(cols).fill(0))
 
   // Fisher-Yates shuffle
-  for (let i = boats.length - 1; i > 0; i--) {
+  for (let i = boatsLengths.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[boats[i], boats[j]] = [boats[j], boats[i]]
+    ;[boatsLengths[i], boatsLengths[j]] = [boatsLengths[j], boatsLengths[i]]
   }
 
   let row
   let col
 
-  for (const boat of boats) {
+  for (const boatLength of boatsLengths) {
     // The highest coordinates for the lowest coordinate of the boat to be at
-    const r = Math.max(0, cols - boat + 1)
-    const c = Math.max(0, rows - boat + 1)
+    const r = Math.max(0, cols - boatLength + 1)
+    const c = Math.max(0, rows - boatLength + 1)
 
     // Place the boat with perfectly distributed chances
     const placeHorCells = rows * r
@@ -36,10 +36,10 @@ self.onmessage = function (e: MessageEvent<Data>) {
     let boatPlaced = false
 
     for (let tries = 0; tries < Math.sqrt(rows * cols) * 80; tries++) {
-      const horizontal = !!(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
+      const vertical = !!(Math.random() < placeVerCells / (placeHorCells + placeVerCells))
 
       // Place the boat randomly ensuring it won't overflow the grid
-      if (horizontal) {
+      if (vertical) {
         row = ~~(Math.random() * rows)
         col = ~~(Math.random() * r)
       } else {
@@ -47,8 +47,8 @@ self.onmessage = function (e: MessageEvent<Data>) {
         col = ~~(Math.random() * cols)
       }
 
-      if (canPlaceBoat(e.data, heatmap, boat, row, col, horizontal)) {
-        forEachSegment(boat, row, col, horizontal, (row, col) => (heatmap[row][col] = 1))
+      if (canPlaceBoat(e.data, heatmap, boatLength, row, col, vertical)) {
+        forEachSegment(boatLength, row, col, vertical, (row, col) => (heatmap[row][col] = 1))
         boatPlaced = true
         break
       }
@@ -80,24 +80,24 @@ self.onmessage = function (e: MessageEvent<Data>) {
 function canPlaceBoat(
   data: Data,
   heatmap: number[][],
-  boat: number,
+  boatLength: number,
   row: number,
   col: number,
-  horizontal: boolean
+  vertical: boolean
 ): boolean {
   const { rows, cols, allowTouching, grid } = data
 
-  const endRow = row + +!horizontal * (boat - 1)
-  const endCol = col + +horizontal * (boat - 1)
+  const endRow = row + +vertical * (boatLength - 1)
+  const endCol = col + +!vertical * (boatLength - 1)
 
   // Out of bounds
   if (row < 0 || col < 0 || endRow > rows || endCol > cols) return false
 
   if (allowTouching) {
-    for (let segment = 0; segment < boat; segment++) {
+    for (let segment = 0; segment < boatLength; segment++) {
       if (heatmap[row][col] || grid[row][col] === BattleshipHeatmap.MISS) return false
-      row += +!horizontal
-      col += +horizontal
+      row += +vertical
+      col += +!vertical
     }
     return true
   }
@@ -115,24 +115,24 @@ function canPlaceBoat(
   }
 
   // Disallow placing the boat over a miss clue
-  for (let segment = 0; segment < boat; segment++) {
+  for (let segment = 0; segment < boatLength; segment++) {
     if (grid[row][col] === 3) return false
-    row += +!horizontal
-    col += +horizontal
+    row += +vertical
+    col += +!vertical
   }
   return true
 }
 
 function forEachSegment(
-  boat: number,
+  boatLength: number,
   row: number,
   col: number,
-  horizontal: boolean,
+  vertical: boolean,
   callback: (row: number, col: number) => void
 ): void {
-  for (let segment = 0; segment < boat; segment++) {
+  for (let segment = 0; segment < boatLength; segment++) {
     callback(row, col)
-    row += +!horizontal
-    col += +horizontal
+    row += +vertical
+    col += +!vertical
   }
 }

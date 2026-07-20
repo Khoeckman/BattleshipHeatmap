@@ -111,11 +111,11 @@ export default class BattleshipIO {
   renderFleet(): void {
     this.fleetEl.innerHTML = ''
 
-    for (let boat of this.heatmap.boats) {
+    for (let boatLength of this.heatmap.boatLengths) {
       const boatEl = document.createElement('li')
-      if (boat >= 2 && boat <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boat]
+      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength]
 
-      for (let segment = 0; segment < boat; segment++) {
+      for (let segment = 0; segment < boatLength; segment++) {
         const segmentEl = document.createElement('div')
         boatEl.appendChild(segmentEl)
       }
@@ -128,24 +128,24 @@ export default class BattleshipIO {
     if (!this.fleetEl.children.length) return
 
     this.heatmap.updateBoatsSunken()
-    const boatsSunken = structuredClone(this.heatmap.boatsSunken)
+    const boatsSunkenSizes = this.heatmap.boatsSunken.map((b) => b.size)
 
     const fleet = [...this.fleetEl.children] as HTMLElement[]
 
-    for (let i = 0; i < this.heatmap.boats.length; i++) {
-      const boat = this.heatmap.boats[i]
+    for (let i = 0; i < this.heatmap.boatLengths.length; i++) {
+      const boatLength = this.heatmap.boatLengths[i]
       const boatEl = fleet[i]
 
-      if (!boatsSunken.includes(boat)) {
+      if (!boatsSunkenSizes.includes(boatLength)) {
         boatEl.removeAttribute('class')
         continue
       }
 
       boatEl.className = 'sunk'
-      if (boat >= 2 && boat <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boat]
+      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength]
 
-      boatsSunken.splice(
-        boatsSunken.findIndex((b) => b === boat),
+      boatsSunkenSizes.splice(
+        boatsSunkenSizes.findIndex((b) => b === boatLength),
         1
       )
     }
@@ -381,7 +381,7 @@ export default class BattleshipIO {
       const { boat, total, sunken } = this.heatmap.boatsSunkenValid
 
       window.alert(
-        `More boats of size ${boat} are marked as sunken than exist on the board. 
+        `More boats of length ${boat} are marked as sunken than exist on the board. 
     On the board: ${total}
     Marked as sunken: ${sunken}`
       )

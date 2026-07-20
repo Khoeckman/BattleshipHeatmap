@@ -23,7 +23,7 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [V] Allow multiple hot spots (green) if chances are very close within min-max range
 
-[ ] Show error when the fleet contains a boat larger than both dimensions
+[V] style mobile buttons / create context menu
 
 [ ] Fix input bug, when changing the cols dimension upwards by clicking "start" when the cols-changed event hasn't fired yet causes an error in
 accumulateHeatmap:
@@ -37,8 +37,6 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
 
-[ ] style mobile buttons / create context menu
-
 [ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
 
 ## Nice to have
@@ -51,5 +49,5 @@ OR the boats should be placed on the S's, whichever is more performant
 
 ## Progress
 
-Done: 10
-Total: 19
+Done: 11
+Total: 18
