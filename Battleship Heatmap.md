@@ -39,7 +39,7 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] style mobile buttons / create context menu
 
-[ ] add a place with information such as keyboard controls
+[ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
 
 ## Nice to have
 

@@ -5,7 +5,6 @@
 @use 'main/main.scss';
 @use 'main/fleet.scss';
 @use 'main/grid.scss';
-@use 'footer.scss';
 
 @use 'credits.scss';
 
@@ -53,8 +52,25 @@ body {
   display: flex;
   flex-flow: column;
   margin: 0 auto;
-  max-width: 60em;
   min-height: 100dvh;
+}
+
+main {
+  flex: 1;
+  margin-inline: auto;
+  width: 100%;
+  max-width: 60em;
+}
+
+footer {
+  border-top: 1px solid var(--c12);
+  padding: 2rem;
+
+  p {
+    text-align: center;
+    color: var(--c72);
+    margin: 0 auto;
+  }
 }
 
 a {
