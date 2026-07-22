@@ -1,9 +1,11 @@
+import { type Boat } from '../battleship/grid'
 import BattleshipHeatmap from '../battleship/heatmap'
 
 type Data = {
   rows: number
   cols: number
   boatsLengths: number[]
+  boatsSunken: Boat[]
   allowTouching: boolean
   grid: number[][]
 }
@@ -34,11 +36,12 @@ self.onmessage = function (e: MessageEvent<Data>) {
     const placeVerCells = cols * c
 
     let boatPlaced = false
+    const tries = Math.sqrt(rows * cols) * 80
 
-    for (let tries = 0; tries < Math.sqrt(rows * cols) * 80; tries++) {
-      const vertical = !!(Math.random() < placeVerCells / (placeHorCells + placeVerCells))
+    for (let t = 0; t < tries; t++) {
+      const vertical = !(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
 
-      // Place the boat randomly ensuring it won't overflow the grid
+      // Place the boat randomly ensuring it won't exceed the grid limits
       if (vertical) {
         row = ~~(Math.random() * rows)
         col = ~~(Math.random() * r)
@@ -55,6 +58,7 @@ self.onmessage = function (e: MessageEvent<Data>) {
     }
 
     if (!boatPlaced) {
+      // Mission failed, we'll get 'em next time
       self.postMessage(false)
       return
     }
@@ -67,6 +71,7 @@ self.onmessage = function (e: MessageEvent<Data>) {
         (grid[row][col] === BattleshipHeatmap.SUNK || grid[row][col] === BattleshipHeatmap.HIT) &&
         !heatmap[row][col]
       ) {
+        // Mission failed, we'll get 'em next time
         self.postMessage(false)
         return
       }
