@@ -183,82 +183,82 @@ export default class BattleshipGrid {
 
     const usedCells = new Set<string>()
 
-    if (this.allowTouching) {
-      return // TODO: find out how to do it when allow touching is on
-    } else {
-      if (this.findCorner(BattleshipGrid.SUNK, BattleshipGrid.HIT)) return
+    if (this.findCorner(BattleshipGrid.SUNK, BattleshipGrid.HIT)) return
 
-      let row
-      let col
-      let boat: Boat | null = null
+    let row
+    let col
+    let boat: Boat | null = null
 
-      // Scan horizontally
-      for (row = 0; row < this.rows; row++) {
-        for (col = 0; col < this.cols; col++) {
-          const value = this.grid[row][col]
+    // Scan horizontally
+    for (row = 0; row < this.rows; row++) {
+      for (col = 0; col < this.cols; col++) {
+        const value = this.grid[row][col]
 
-          const valueAbove = row === 0 ? NaN : this.grid[row - 1][col]
-          const valueBelow = row === this.rows - 1 ? NaN : this.grid[row + 1][col]
+        const valueAbove = row === 0 ? NaN : this.grid[row - 1][col]
+        const valueBelow = row === this.rows - 1 ? NaN : this.grid[row + 1][col]
 
-          if (
-            value === BattleshipGrid.SUNK &&
-            valueAbove !== BattleshipGrid.SUNK &&
-            valueBelow !== BattleshipGrid.SUNK
-          ) {
-            if (!boat) boat = { length: 1, row, col, vertical: false }
-            else boat.length++
-            usedCells.add(row + ',' + col)
-          } else if (boat) {
-            this.boatsSunken.push(boat)
-            boat = null
-            usedCells.add(row + ',' + col)
-          }
-        }
+        if (
+          value === BattleshipGrid.SUNK &&
+          valueAbove !== BattleshipGrid.SUNK &&
+          valueBelow !== BattleshipGrid.SUNK
+        ) {
+          if (!boat) boat = { length: 1, row, col, vertical: false }
+          else boat.length++
 
-        if (boat) {
+          usedCells.add(row + ',' + col)
+        } else if (boat) {
           this.boatsSunken.push(boat)
           boat = null
+
           usedCells.add(row + ',' + col)
         }
       }
 
-      // Scan vertically
-      for (col = 0; col < this.cols; col++) {
-        for (row = 0; row < this.rows; row++) {
-          const value = this.grid[row][col]
+      if (boat) {
+        this.boatsSunken.push(boat)
+        boat = null
+        usedCells.add(row + ',' + col)
+      }
+    }
 
-          // Check if this cell has already been used for a boat in the other orientation
-          if (usedCells.has(row + ',' + col)) continue
+    // Scan vertically
+    for (col = 0; col < this.cols; col++) {
+      for (row = 0; row < this.rows; row++) {
+        const value = this.grid[row][col]
 
-          if (value === BattleshipGrid.SUNK) {
-            if (!boat) boat = { length: 1, row, col, vertical: true }
-            else boat.length++
-          } else if (boat) {
-            this.boatsSunken.push(boat)
-            boat = null
-          }
-        }
+        // Check if this cell has already been used for a boat in the other orientation
+        if (usedCells.has(row + ',' + col)) continue
 
-        if (boat) {
+        if (value === BattleshipGrid.SUNK) {
+          if (!boat) boat = { length: 1, row, col, vertical: true }
+          else boat.length++
+        } else if (boat) {
           this.boatsSunken.push(boat)
           boat = null
-          usedCells.add(row + ',' + col)
         }
+      }
+
+      if (boat) {
+        this.boatsSunken.push(boat)
+        boat = null
       }
     }
 
     // Update boatsSunkenValid
+    this.#boatsSunkenError = null
     const boatsSet = new Set(this.boatsSunken)
 
     for (const boat of boatsSet) {
       const boatAmount = this.boatLengths.filter((length) => length === boat.length).length
-      const boatSunkenAmount = this.boatsSunken.filter((b) => b === boat).length
+      const boatSunkenAmount = this.boatsSunken.filter((b) => b.length === boat.length).length
 
       if (boatSunkenAmount > boatAmount) {
         this.#boatsSunkenError = { boat, total: boatAmount, sunken: boatSunkenAmount }
-        return
+        break
       }
     }
-    this.#boatsSunkenError = null
+
+    // TODO: temporarily reset errors because they appear on valid configurations
+    if (this.allowTouching) this.#boatsSunkenError = null
   }
 }
