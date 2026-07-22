@@ -213,7 +213,11 @@ export default class BattleshipIO {
 
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
-    const hotspots = this.heatmap.getHotspots(maxHeat * 0.99)
+
+    // Slowly rise from 98% to 100% the more successful configurations have been accumulated
+    const hotspotMargin =
+      0.98 + 0.02 * (1 - Math.min(1, 1 / (this.heatmap.accumulated / 20_000)) ** 0.3)
+    const hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
     minHeat *= 0.9
     maxHeat *= 1.1

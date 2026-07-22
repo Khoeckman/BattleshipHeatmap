@@ -88,16 +88,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
         const heat = this.heatmap[row][col]
         if (heat < min) min = heat
-        else if (heat > max) max = heat
+        if (heat > max) max = heat
       }
     }
 
-    // This is more efficient than changing the if-else to an if-if
-    if (min < Infinity && max === -Infinity) max = min
-
     // Normalize
-    min = min / Math.max(1, this.accumulated)
-    max = max / Math.max(1, this.accumulated)
+    min /= Math.max(1, this.accumulated)
+    max /= Math.max(1, this.accumulated)
 
     return { min, max }
   }
@@ -107,13 +104,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
     if (!minHotspotHeat) return hotspots
 
+    // Denormalize the comparator instead of normalizing each candidate
+    minHotspotHeat *= Math.max(1, this.accumulated)
+
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
         const value = this.grid[row][col]
         if (value === BattleshipHeatmap.SUNK || value === BattleshipHeatmap.HIT) continue
 
-        const heat = this.heatmap[row][col] / Math.max(1, this.accumulated)
-        if (heat >= minHotspotHeat) hotspots.push({ row, col })
+        if (this.heatmap[row][col] >= minHotspotHeat) hotspots.push({ row, col })
       }
     }
     return hotspots
