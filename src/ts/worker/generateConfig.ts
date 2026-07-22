@@ -4,54 +4,58 @@ import BattleshipHeatmap from '../battleship/heatmap'
 type Data = {
   rows: number
   cols: number
-  boatsLengths: number[]
+  boatLengths: number[]
   boatsSunken: Boat[]
   allowTouching: boolean
   grid: number[][]
 }
 
-self.onmessage = function (e: MessageEvent<Data>) {
-  const { rows, cols, boatsLengths, /*allowTouching,*/ grid } = e.data
+let data: Data
 
-  const heatmap = Array(rows)
+self.onmessage = function (e: MessageEvent<Data>) {
+  data = e.data
+
+  const heatmap = Array(data.rows)
     .fill(0)
-    .map(() => Array(cols).fill(0))
+    .map(() => Array(data.cols).fill(0))
 
   // Fisher-Yates shuffle
-  for (let i = boatsLengths.length - 1; i > 0; i--) {
+  for (let i = data.boatLengths.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[boatsLengths[i], boatsLengths[j]] = [boatsLengths[j], boatsLengths[i]]
+    ;[data.boatLengths[i], data.boatLengths[j]] = [data.boatLengths[j], data.boatLengths[i]]
   }
 
   let row
   let col
 
-  for (const boatLength of boatsLengths) {
-    // The highest coordinates for the lowest coordinate of the boat to be at
-    const r = Math.max(0, cols - boatLength + 1)
-    const c = Math.max(0, rows - boatLength + 1)
+  for (const boatLength of data.boatLengths) {
+    // The highest coordinates that the lowest coordinate of the boat can be at
+    const r = Math.max(0, data.cols - boatLength + 1)
+    const c = Math.max(0, data.rows - boatLength + 1)
 
     // Place the boat with perfectly distributed chances
-    const placeHorCells = rows * r
-    const placeVerCells = cols * c
+    const placeHorCells = data.rows * r
+    const placeVerCells = data.cols * c
 
     let boatPlaced = false
-    const tries = Math.sqrt(rows * cols) * 80
+    const tries = Math.sqrt(data.rows * data.cols) * 80
 
     for (let t = 0; t < tries; t++) {
       const vertical = !(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
 
       // Place the boat randomly ensuring it won't exceed the grid limits
       if (vertical) {
-        row = ~~(Math.random() * rows)
+        row = ~~(Math.random() * data.rows)
         col = ~~(Math.random() * r)
       } else {
         row = ~~(Math.random() * c)
-        col = ~~(Math.random() * cols)
+        col = ~~(Math.random() * data.cols)
       }
 
-      if (canPlaceBoat(e.data, heatmap, boatLength, row, col, vertical)) {
-        forEachSegment(boatLength, row, col, vertical, (row, col) => (heatmap[row][col] = 1))
+      const boat = { length: boatLength, row, col, vertical }
+
+      if (canPlaceBoat(heatmap, boat)) {
+        forEachBoatSegment(boat, (row, col) => (heatmap[row][col] = 1))
         boatPlaced = true
         break
       }
@@ -65,10 +69,11 @@ self.onmessage = function (e: MessageEvent<Data>) {
   }
 
   // Check if all hit and sunk clues have a boat placed on them
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < cols; col++) {
+  for (let row = 0; row < data.rows; row++) {
+    for (let col = 0; col < data.cols; col++) {
       if (
-        (grid[row][col] === BattleshipHeatmap.SUNK || grid[row][col] === BattleshipHeatmap.HIT) &&
+        (data.grid[row][col] === BattleshipHeatmap.SUNK ||
+          data.grid[row][col] === BattleshipHeatmap.HIT) &&
         !heatmap[row][col]
       ) {
         // Mission failed, we'll get 'em next time
@@ -82,36 +87,29 @@ self.onmessage = function (e: MessageEvent<Data>) {
   self.postMessage(heatmap)
 }
 
-function canPlaceBoat(
-  data: Data,
-  heatmap: number[][],
-  boatLength: number,
-  row: number,
-  col: number,
-  vertical: boolean
-): boolean {
-  const { rows, cols, allowTouching, grid } = data
-
-  const endRow = row + +vertical * (boatLength - 1)
-  const endCol = col + +!vertical * (boatLength - 1)
+function canPlaceBoat(heatmap: number[][], boat: Boat): boolean {
+  const endRow = boat.row + +boat.vertical * (boat.length - 1)
+  const endCol = boat.col + +!boat.vertical * (boat.length - 1)
 
   // Out of bounds
-  if (row < 0 || col < 0 || endRow > rows || endCol > cols) return false
+  if (boat.row < 0 || boat.col < 0 || endRow > data.rows || endCol > data.cols) return false
 
-  if (allowTouching) {
-    for (let segment = 0; segment < boatLength; segment++) {
-      if (heatmap[row][col] || grid[row][col] === BattleshipHeatmap.MISS) return false
-      row += +vertical
-      col += +!vertical
+  if (data.allowTouching) {
+    for (let segment = 0; segment < boat.length; segment++) {
+      if (heatmap[boat.row][boat.col] || data.grid[boat.row][boat.col] === BattleshipHeatmap.MISS)
+        return false
+
+      boat.row += +boat.vertical
+      boat.col += +!boat.vertical
     }
     return true
   }
 
   // Check a bounding box around the boat
-  const minRow = Math.max(0, row - 1)
-  const maxRow = Math.min(rows - 1, endRow + 1)
-  const minCol = Math.max(0, col - 1)
-  const maxCol = Math.min(cols - 1, endCol + 1)
+  const minRow = Math.max(0, boat.row - 1)
+  const maxRow = Math.min(data.rows - 1, endRow + 1)
+  const minCol = Math.max(0, boat.col - 1)
+  const maxCol = Math.min(data.cols - 1, endCol + 1)
 
   for (let r = minRow; r <= maxRow; r++) {
     for (let c = minCol; c <= maxCol; c++) {
@@ -120,24 +118,18 @@ function canPlaceBoat(
   }
 
   // Disallow placing the boat over a miss clue
-  for (let segment = 0; segment < boatLength; segment++) {
-    if (grid[row][col] === 3) return false
-    row += +vertical
-    col += +!vertical
+  for (let segment = 0; segment < boat.length; segment++) {
+    if (data.grid[boat.row][boat.col] === 3) return false
+    boat.row += +boat.vertical
+    boat.col += +!boat.vertical
   }
   return true
 }
 
-function forEachSegment(
-  boatLength: number,
-  row: number,
-  col: number,
-  vertical: boolean,
-  callback: (row: number, col: number) => void
-): void {
-  for (let segment = 0; segment < boatLength; segment++) {
-    callback(row, col)
-    row += +vertical
-    col += +!vertical
+function forEachBoatSegment(boat: Boat, callback: (row: number, col: number) => void): void {
+  for (let segment = 0; segment < boat.length; segment++) {
+    callback(boat.row, boat.col)
+    boat.row += +boat.vertical
+    boat.col += +!boat.vertical
   }
 }
