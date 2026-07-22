@@ -22,6 +22,9 @@ self.onmessage = function (e: MessageEvent<Data>) {
   // Place sunken boats
   for (const boat of data.boatsSunken) {
     placeBoat(data, heatmap, boat as PlaceableBoat)
+
+    // Remove boat from the list of to be placed boats
+    data.boatLengths.splice(data.boatLengths.indexOf(boat.length), 1)
   }
 
   // Fisher-Yates shuffle
