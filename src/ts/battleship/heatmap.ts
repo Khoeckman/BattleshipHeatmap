@@ -160,7 +160,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * Calculate a heatmap by accumulating many random valid configurations.
    */
   startGenerating(onCalculatingTimeout?: () => void): void {
-    if (this.#generating) return
+    if (this.#generating || this.boatsSunkenError) return
 
     this.generating = true
     this.generationStartTs = performance.now()
