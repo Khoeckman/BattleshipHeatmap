@@ -191,7 +191,7 @@ main {
     overflow: hidden;
 
     li {
-      flex-grow: 1;
+      flex: 1 0;
 
       button {
         background-color: var(--c24);
@@ -199,7 +199,7 @@ main {
         box-shadow: none;
         color: var(--fg);
         width: 100%;
-        min-width: 6rem;
+        min-width: 0;
 
         &:hover,
         &:focus-visible {
@@ -218,7 +218,7 @@ main {
     > .wrapper {
       text-align: center;
       padding: 1rem;
-      min-width: 8rem;
+      width: 8rem;
 
       dt {
         font-weight: bold;
@@ -232,7 +232,7 @@ main {
   }
 }
 
-@media (width < 30em) {
+@media (width < 45em) {
   main {
     padding: 2rem 1rem;
 
