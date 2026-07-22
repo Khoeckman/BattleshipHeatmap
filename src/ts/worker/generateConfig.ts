@@ -13,7 +13,7 @@ type Data = {
 
 self.onmessage = function (e: MessageEvent<Data>) {
   const data = e.data
-  data.grid = unpackIncoming(data.grid as unknown as number[], data.rows, data.cols)
+  data.grid = unpackIncoming(data.grid as unknown as Uint8Array, data.rows, data.cols)
 
   const heatmap = Array(data.rows)
     .fill(0)

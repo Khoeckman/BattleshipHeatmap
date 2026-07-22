@@ -180,7 +180,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       type: 'module',
     })
 
-    worker.addEventListener('message', (e: MessageEvent<number[] | false>) => {
+    worker.addEventListener('message', (e: MessageEvent<Uint8Array | false>) => {
       if (e.data) this.accumulateHeatmap(unpackIncoming(e.data, this.rows, this.cols))
 
       if (!this.#generating) {
