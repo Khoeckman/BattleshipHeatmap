@@ -1,5 +1,6 @@
 import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipHeatmap from '../battleship/heatmap'
+import { packOutgoing, unpackIncoming } from './messageOptimizer'
 
 type Data = {
   rows: number
@@ -12,6 +13,7 @@ type Data = {
 
 self.onmessage = function (e: MessageEvent<Data>) {
   const data = e.data
+  data.grid = unpackIncoming(data.grid as unknown as number[], data.rows, data.cols)
 
   const heatmap = Array(data.rows)
     .fill(0)
@@ -85,7 +87,7 @@ self.onmessage = function (e: MessageEvent<Data>) {
   }
 
   // Successful configuration found
-  self.postMessage(heatmap)
+  self.postMessage(packOutgoing(heatmap, data.rows, data.cols))
 }
 
 /**
