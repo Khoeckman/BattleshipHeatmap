@@ -83,8 +83,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
-        const value = this.grid[row][col]
-        if (value === BattleshipHeatmap.SUNK || value === BattleshipHeatmap.HIT) continue
+        // SUNK || HIT
+        if (this.grid[row][col] & 3) continue
 
         const heat = this.heatmap[row][col]
         if (heat < min) min = heat
@@ -109,8 +109,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
     for (let row = 0; row < this.rows; row++) {
       for (let col = 0; col < this.cols; col++) {
-        const value = this.grid[row][col]
-        if (value === BattleshipHeatmap.SUNK || value === BattleshipHeatmap.HIT) continue
+        // SUNK || HIT
+        if (this.grid[row][col] & 3) continue
 
         if (this.heatmap[row][col] >= minHotspotHeat) hotspots.push({ row, col })
       }

@@ -59,8 +59,7 @@ self.onmessage = function (e: MessageEvent<Data>) {
 
       const boat = { length: boatLength, row, col, vertical }
 
-      if (canPlaceBoat(data, heatmap, boat)) {
-        placeBoat(data, heatmap, boat)
+      if (canPlaceBoat(data, heatmap, boat) && placeBoat(data, heatmap, boat)) {
         boatPlaced = true
         break
       }
@@ -76,9 +75,7 @@ self.onmessage = function (e: MessageEvent<Data>) {
   // Check if all hit and sunk clues have a boat placed on them
   for (let row = 0; row < data.rows; row++) {
     for (let col = 0; col < data.cols; col++) {
-      const boatExpected =
-        data.grid[row][col] === BattleshipHeatmap.SUNK ||
-        data.grid[row][col] === BattleshipHeatmap.HIT
+      const boatExpected = data.grid[row][col] & 3 // SUNK || HIT
       const boat = heatmap[row][col]
 
       if (boatExpected && !boat) {
@@ -118,12 +115,23 @@ function canPlaceBoat(data: Data, heatmap: number[][], boat: Boat): boat is Plac
 
 /**
  * Places a boat and surrounds it with water if `allowTouching` is false.
+ *
+ * @returns true if the boat was placed, false if it could not be placed.
  */
-function placeBoat(data: Data, heatmap: number[][], boat: PlaceableBoat) {
+function placeBoat(data: Data, heatmap: number[][], boat: PlaceableBoat): boolean {
   if (!data.allowTouching) {
+    // Should fail if boat is placed next to but not on a HIT clue
+    // if (true) {
+    //   return false
+    // }
+
+    const segments: { row: number; col: number }[] = []
+    forEachBoatSegment(boat, (row, col) => segments.push({ row, col }))
+
     const endRow = boat.row + +boat.vertical * (boat.length - 1)
     const endCol = boat.col + +!boat.vertical * (boat.length - 1)
 
+    // Check all values in a bounding box around the boat
     const minRow = Math.max(0, boat.row - 1)
     const maxRow = Math.min(data.rows - 1, endRow + 1)
     const minCol = Math.max(0, boat.col - 1)
@@ -131,6 +139,11 @@ function placeBoat(data: Data, heatmap: number[][], boat: PlaceableBoat) {
 
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
+        const isBoatSegment = segments.some((segment) => segment.row === r && segment.col === c)
+        if (isBoatSegment) continue
+
+        // SUNK || HIT
+        if (data.grid[r][c] & 3) return false
         data.grid[r][c] = BattleshipHeatmap.MISS
       }
     }
@@ -140,6 +153,7 @@ function placeBoat(data: Data, heatmap: number[][], boat: PlaceableBoat) {
     heatmap[row][col] = 1
     data.grid[row][col] = BattleshipHeatmap.SUNK
   })
+  return true
 }
 
 /**

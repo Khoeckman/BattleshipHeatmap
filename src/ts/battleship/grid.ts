@@ -5,7 +5,7 @@ export default class BattleshipGrid {
   public static readonly EMPTY = 0
   public static readonly SUNK = 1
   public static readonly HIT = 2
-  public static readonly MISS = 3
+  public static readonly MISS = 4
 
   #rows = 0
   #cols = 0
