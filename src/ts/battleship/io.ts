@@ -22,14 +22,14 @@ export default class BattleshipIO {
     0: 'empty',
     1: 'sunk',
     2: 'hit',
-    3: 'miss',
+    4: 'miss',
   }
 
   private static CLUE_SYMBOL: { [key: number]: string } = {
     0: '',
     1: 'S',
     2: 'H',
-    3: '~',
+    4: '~',
   }
 
   private static BOAT_NAME: { [key: number]: string } = {
@@ -346,8 +346,8 @@ export default class BattleshipIO {
   }
 
   setCursorCell(value: number): void {
-    if (!(value >= 0 && value < 4)) {
-      throw new RangeError('value must be between 0 and 3')
+    if (!(value === 0 || value === 1 || value === 2 || value === 4)) {
+      throw new RangeError('value must be: 0, 1, 2 or 4')
     }
 
     const { row, col } = this.cursor
@@ -436,19 +436,15 @@ ${sunken} > ${total}`
       case 'ArrowUp':
         this.moveCursor(-1, 0)
         break
-
       case 'ArrowRight':
         this.moveCursor(0, 1)
         break
-
       case 'ArrowLeft':
         this.moveCursor(0, -1)
         break
-
       case 'ArrowDown':
         this.moveCursor(1, 0)
         break
-
       case 'x':
       case 'Backspace':
         this.setCursorCell(BattleshipHeatmap.EMPTY)

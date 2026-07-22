@@ -113,9 +113,11 @@ export default class BattleshipGrid {
   set grid(value) {
     if (
       !Array.isArray(value) ||
-      !value.every((row) => row.every((cell) => cell >= 0 && cell <= 3))
+      !value.every((row) =>
+        row.every((cell) => cell === 0 || cell === 1 || cell === 2 || cell === 4)
+      )
     ) {
-      throw new TypeError('grid must be a two-dimensional array with numbers between 0 and 3')
+      throw new TypeError('grid must be a two-dimensional array with values: 0, 1, 2 or 4')
     }
     if (value.length !== this.rows || !value.every((row) => row.length === this.cols)) {
       throw new RangeError('grid dimensions must match rows and cols')
