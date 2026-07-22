@@ -263,6 +263,10 @@ export default class BattleshipIO {
     }
 
     this.heat.hotspots = hotspots
+
+    this.gridEl.classList.add('restart-hotspot-animation')
+    void this.gridEl.offsetWidth
+    this.gridEl.classList.remove('restart-hotspot-animation')
   }
 
   scheduleRenderHeatmap(): void {
