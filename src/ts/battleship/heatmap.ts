@@ -196,7 +196,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     worker.postMessage({
       rows: this.rows,
       cols: this.cols,
-      boatsLengths: this.boatLengths,
+      boatLengths: this.boatLengths,
       boatsSunken: this.boatsSunken,
       allowTouching: this.allowTouching,
       grid: this.grid,
