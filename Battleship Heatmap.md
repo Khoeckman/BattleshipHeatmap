@@ -25,6 +25,8 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [V] style mobile buttons / create context menu
 
+[V] disallow the boat lengths field to contain a boat larger than any dimension
+
 [ ] Fix input bug, when changing the cols dimension upwards by clicking "start" when the cols-changed event hasn't fired yet causes an error in
 accumulateHeatmap:
 
@@ -47,7 +49,9 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] display letters and numbers next to grid
 
+[ ] use modals instead of window.alert() for errors.
+
 ## Progress
 
-Done: 11
-Total: 18
+Done: 12
+Total: 20

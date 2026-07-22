@@ -385,6 +385,12 @@ export default class BattleshipIO {
   }
 
   startGenerating(): void {
+    const largestDimension = Math.max(this.heatmap.rows, this.heatmap.cols)
+    if (this.heatmap.boatLengths.some((boatLength) => boatLength > largestDimension)) {
+      window.alert('The fleet contains a boat larger than the grid.')
+      return
+    }
+
     if (this.heatmap.boatsSunkenError) {
       const { boat, total, sunken } = this.heatmap.boatsSunkenError
 
