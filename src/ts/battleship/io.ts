@@ -128,7 +128,7 @@ export default class BattleshipIO {
     if (!this.fleetEl.children.length) return
 
     this.heatmap.updateBoatsSunken()
-    const boatsSunkenSizes = this.heatmap.boatsSunken.map((b) => b.size)
+    const boatsSunkenSizes = this.heatmap.boatsSunken.map((b) => b.length)
 
     const fleet = [...this.fleetEl.children] as HTMLElement[]
 
@@ -381,9 +381,8 @@ export default class BattleshipIO {
       const { boat, total, sunken } = this.heatmap.boatsSunkenError
 
       window.alert(
-        `More boats of length ${boat} are marked as sunken than exist on the board. 
-    On the board: ${total}
-    Marked as sunken: ${sunken}`
+        `More boats of length ${boat.length} are marked as sunken than exist on the board.
+${sunken} > ${total}`
       )
       return
     }

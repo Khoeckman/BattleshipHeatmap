@@ -1,5 +1,5 @@
-type Boat = { size: number; row: number; col: number; vertical: boolean }
-type BoatsTooManyError = { boat: Boat; total: number; sunken: number }
+export type Boat = { length: number; row: number; col: number; vertical: boolean }
+export type BoatsTooManyError = { boat: Boat; total: number; sunken: number }
 
 export default class BattleshipGrid {
   public static readonly EMPTY = 0
@@ -205,8 +205,8 @@ export default class BattleshipGrid {
             valueAbove !== BattleshipGrid.SUNK &&
             valueBelow !== BattleshipGrid.SUNK
           ) {
-            if (!boat) boat = { size: 1, row, col, vertical: false }
-            else boat.size++
+            if (!boat) boat = { length: 1, row, col, vertical: false }
+            else boat.length++
             usedCells.add(row + ',' + col)
           } else if (boat) {
             this.boatsSunken.push(boat)
@@ -231,8 +231,8 @@ export default class BattleshipGrid {
           if (usedCells.has(row + ',' + col)) continue
 
           if (value === BattleshipGrid.SUNK) {
-            if (!boat) boat = { size: 1, row, col, vertical: true }
-            else boat.size++
+            if (!boat) boat = { length: 1, row, col, vertical: true }
+            else boat.length++
           } else if (boat) {
             this.boatsSunken.push(boat)
             boat = null
@@ -251,7 +251,7 @@ export default class BattleshipGrid {
     const boatsSet = new Set(this.boatsSunken)
 
     for (const boat of boatsSet) {
-      const boatAmount = this.boatLengths.filter((size) => size === boat.size).length
+      const boatAmount = this.boatLengths.filter((length) => length === boat.length).length
       const boatSunkenAmount = this.boatsSunken.filter((b) => b === boat).length
 
       if (boatSunkenAmount > boatAmount) {
