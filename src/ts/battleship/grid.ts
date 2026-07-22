@@ -1,4 +1,5 @@
 export type Boat = { length: number; row: number; col: number; vertical: boolean }
+export type PlaceableBoat = Boat & { readonly __placeableBoat: unique symbol }
 export type BoatsTooManyError = { boat: Boat; total: number; sunken: number }
 
 export default class BattleshipGrid {

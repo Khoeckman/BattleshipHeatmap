@@ -1,4 +1,4 @@
-import { type Boat } from '../battleship/grid'
+import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipHeatmap from '../battleship/heatmap'
 
 type Data = {
@@ -9,8 +9,6 @@ type Data = {
   allowTouching: boolean
   grid: number[][]
 }
-
-type PlaceableBoat = Boat & { readonly __placeableBoat: unique symbol }
 
 self.onmessage = function (e: MessageEvent<Data>) {
   const data = e.data
