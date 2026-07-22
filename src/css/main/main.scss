@@ -82,8 +82,8 @@ main {
     padding: 0.75rem 0.75rem;
     transition:
       background-color 125ms ease-in-out,
-      color 125ms ease-in-out,
       box-shadow 125ms ease-in-out,
+      color 125ms ease-in-out,
       filter 125ms ease-in-out,
       transform 125ms ease-out;
 
@@ -94,7 +94,7 @@ main {
       min-height: 1rem;
     }
 
-    &:not(.error):hover {
+    &:not(.error):is(:hover, :focus-visible, :active) {
       background-color: var(--bg);
       color: var(--pri);
       box-shadow: 0 0 0.5rem var(--pri);
@@ -108,7 +108,8 @@ main {
       background-color: var(--error);
       color: var(--white);
 
-      &:hover {
+      &:hover,
+      &:focus-visible {
         background-color: var(--bg);
         color: var(--error);
         box-shadow: 0 0 0.5rem var(--error);
@@ -117,7 +118,7 @@ main {
   }
 
   .container {
-    background-color: var(--c100);
+    background-color: var(--c0);
     border-radius: 1rem;
     box-shadow: 0 0 0.5rem var(--c12);
     padding: 2rem;
