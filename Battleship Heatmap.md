@@ -34,12 +34,14 @@ accumulateHeatmap:
     at BattleshipHeatmap.accumulateHeatmap (heatmap.ts:153:45)
     at Worker.<anonymous> (heatmap.ts:184:24)
 
-[ ] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
+[V] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
 OR the boats should be placed on the S's, whichever is more performant
 
 [ ] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
 
 [ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
+
+[ ] if 2 H's are next to eachother, it means there is a boat lying there which is at least 3 long, because if it were only 2 it should have been sunken already (marked with S's)
 
 ## Nice to have
 
@@ -53,5 +55,5 @@ OR the boats should be placed on the S's, whichever is more performant
 
 ## Progress
 
-Done: 12
-Total: 20
+Done: 13
+Total: 21
