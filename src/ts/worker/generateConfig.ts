@@ -1,6 +1,6 @@
 import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipHeatmap from '../battleship/heatmap'
-import { flatten2D, unflatten2D } from './messageOptimizer'
+import { flatten2D, unflatten2D, packBinary } from './messageOptimizer'
 
 type Data = {
   rows: number
@@ -89,8 +89,11 @@ self.onmessage = function (e: MessageEvent<Data>) {
     }
   }
 
+  const flat = flatten2D(heatmap, data.rows, data.cols)
+  const packed = packBinary(flat)
+
   // Successful configuration found
-  self.postMessage(flatten2D(heatmap, data.rows, data.cols))
+  self.postMessage(packed)
 }
 
 /**

@@ -34,6 +34,8 @@ accumulateHeatmap:
     at BattleshipHeatmap.accumulateHeatmap (heatmap.ts:153:45)
     at Worker.<anonymous> (heatmap.ts:184:24)
 
+[ ] Fix resize bug, when entering 10, doing enter to start, enter 100 (which is to big), get window alert, its reset to 10 but the generation conitnues but there no visual output
+
 [V] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
 OR the boats should be placed on the S's, whichever is more performant
 

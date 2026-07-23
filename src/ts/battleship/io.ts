@@ -90,8 +90,10 @@ export default class BattleshipIO {
       settings.allowTouching,
       settings.grid
     )
+
     const onStartCalculating = () => this.updateGenerateButton()
     const onStopCalculating = () => this.updateGenerateButton()
+
     this.heatmap = new BattleshipHeatmap(
       grid,
       settings.generationSeconds,
@@ -361,7 +363,6 @@ export default class BattleshipIO {
   }
 
   resizeGrid(rows: number, cols: number): void {
-    this.heatmap.generating = false
     this.heatmap.resize(rows, cols)
 
     this.settingsStore.set('rows', rows)

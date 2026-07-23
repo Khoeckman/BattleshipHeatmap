@@ -1,5 +1,5 @@
 import BattleshipGrid from './grid'
-import { flatten2D, unflatten2D } from '../worker/messageOptimizer'
+import { flatten2D, unflatten2D, unpackBinary } from '../worker/messageOptimizer'
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   #threads = 0
@@ -9,6 +9,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   /** The number of valid configurations used to accumulate the heatmap */
   public accumulated = 0
+
+  /** Number that is increased every generation to know if async results are outdated */
+  public id = 0
 
   /**
    * Represents the heatmap grid
@@ -120,6 +123,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   resize(rows: number, cols: number): void {
+    this.reset()
     super.resize(rows, cols)
 
     this.heatmap = Array(rows)
@@ -128,8 +132,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   reset(): void {
+    this.generating = false
     super.reset()
     this.resetHeatmap()
+    this.id++
   }
 
   resetHeatmap(): void {
@@ -179,9 +185,14 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
       type: 'module',
     })
+    const id = this.id
 
     worker.addEventListener('message', (e: MessageEvent<Uint8Array | false>) => {
-      if (e.data) this.accumulateHeatmap(unflatten2D(e.data, this.rows, this.cols))
+      if (id === this.id && e.data) {
+        const flatBack = unpackBinary(e.data, this.rows * this.cols)
+        const grid = unflatten2D(flatBack, this.rows, this.cols)
+        this.accumulateHeatmap(grid)
+      }
 
       if (!this.#generating) {
         worker.terminate()
