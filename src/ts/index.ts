@@ -89,7 +89,7 @@ generationSecondsInput.addEventListener('change', function () {
     this.valueAsNumber = io.heatmap.generationSeconds
   }
   this.valueAsNumber = Math.max(+this.min, this.valueAsNumber)
-  io.heatmap.generationSeconds = this.valueAsNumber
+  io.heatmap.generationSeconds = +this.valueAsNumber.toFixed(1)
   io.settingsStore.set('generationSeconds', io.heatmap.generationSeconds)
 })
 
