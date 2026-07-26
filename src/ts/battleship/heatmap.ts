@@ -1,5 +1,4 @@
 import BattleshipGrid from './grid'
-import { flatten2D, unflatten2D, unpackBinary } from '../worker/messageOptimizer'
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   #threads = 0
@@ -187,11 +186,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     })
     const id = this.id
 
-    worker.addEventListener('message', (e: MessageEvent<Uint8Array | false>) => {
+    worker.addEventListener('message', (e: MessageEvent<number[][] | false>) => {
       if (id === this.id && e.data) {
-        const flatBack = unpackBinary(e.data, this.rows * this.cols)
-        const grid = unflatten2D(flatBack, this.rows, this.cols)
-        this.accumulateHeatmap(grid)
+        this.accumulateHeatmap(e.data)
       }
 
       if (!this.#generating) {
@@ -211,7 +208,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       boatLengths: this.boatLengths,
       boatsSunken: this.boatsSunken,
       allowTouching: this.allowTouching,
-      grid: flatten2D(this.grid, this.rows, this.cols),
+      grid: this.grid,
     })
     this.attempts++
   }
