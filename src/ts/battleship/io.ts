@@ -1,6 +1,6 @@
 import HyperStorage from 'hyperstorage-js'
 
-import BattleshipGrid from './grid'
+import BattleshipGrid, { type BoatsTooManyError } from './grid'
 import BattleshipHeatmap from './heatmap'
 import type { Settings } from '../settingsStore'
 
@@ -18,7 +18,7 @@ type HeatCache = {
 }
 
 export default class BattleshipIO {
-  private static CLUE_TEXT: { [key: number]: string } = {
+  private static CLUE_CLASSNAME: { [key: number]: string } = {
     0: 'empty',
     1: 'sunk',
     2: 'hit',
@@ -39,6 +39,8 @@ export default class BattleshipIO {
     5: 'Carrier',
   }
 
+  public boatsSunkenError: BoatsTooManyError | null = null
+
   public settingsStore: HyperStorage<Settings>
   public generateButton: HTMLButtonElement
   public gridEl: HTMLElement
@@ -48,8 +50,9 @@ export default class BattleshipIO {
 
   public cursor = { row: 0, col: 0 }
 
+  #frameHandle = -1
   #lastFrameTs = 0
-  #renderHeatmapController: AbortController = new AbortController()
+  #frameController: AbortController = new AbortController()
 
   constructor(
     settingsStore: HyperStorage<Settings>,
@@ -129,7 +132,7 @@ export default class BattleshipIO {
   updateFleetSunken(): void {
     if (!this.fleetEl.children.length) return
 
-    this.heatmap.updateBoatsSunken()
+    this.boatsSunkenError = this.heatmap.updateBoatsSunken() || null
     const boatsSunkenSizes = this.heatmap.boatsSunken.map((b) => b.length)
 
     const fleet = [...this.fleetEl.children] as HTMLElement[]
@@ -177,7 +180,7 @@ export default class BattleshipIO {
 
       for (let col = 0; col < this.heatmap.cols; col++) {
         const cellEl = document.createElement('div')
-        const cellValue = BattleshipIO.CLUE_TEXT[this.heatmap.getCell(row, col)]
+        const cellValue = BattleshipIO.CLUE_CLASSNAME[this.heatmap.getCell(row, col)]
 
         cellEl.textContent = BattleshipIO.CLUE_SYMBOL[this.heatmap.getCell(row, col)]
         cellEl.classList.add('cell', cellValue)
@@ -210,9 +213,7 @@ export default class BattleshipIO {
     this.heat.hotspots = []
   }
 
-  renderHeatmap(force = false): void {
-    if (!force && !this.heatmap.generating) return
-
+  renderHeatmap(): void {
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
@@ -224,6 +225,9 @@ export default class BattleshipIO {
     minHeat *= 0.9
     maxHeat *= 1.1
 
+    const checkHotspot = (hotspots: { row: number; col: number }[], row: number, col: number) =>
+      hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
+
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
       const rowHeatState = heatState[row]
@@ -233,15 +237,12 @@ export default class BattleshipIO {
 
         const heat = this.heatmap.getHeat(row, col)
         const heatString = (heat * 100).toFixed(1)
-        const isHotspot = hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
+        const isHotspot = checkHotspot(hotspots, row, col)
 
         // Cache heat values and skip if the value remained the same
         if (rowHeatState[col] === heatString) {
-          if (!isHotspot) continue
-
           // If its a hotspot it must have been cached already
-          if (this.heat.hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col))
-            continue
+          if (!isHotspot || checkHotspot(this.heat.hotspots, row, col)) continue
         }
 
         rowHeatState[col] = heatString
@@ -262,6 +263,8 @@ export default class BattleshipIO {
         const normalizedHeat = (heat - minHeat) / (maxHeat - minHeat)
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
+
+      this.renderGenerationInfo()
     }
 
     this.heat.hotspots = hotspots
@@ -274,7 +277,9 @@ export default class BattleshipIO {
   scheduleRenderHeatmap(): void {
     this.renderGenerationInfo()
 
-    if (this.heatmap.generating) requestAnimationFrame(() => this.scheduleRenderHeatmap())
+    if (this.heatmap.generating) {
+      this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
+    }
 
     // Calculate if a heatmap update may be queued
     const now = performance.now()
@@ -283,14 +288,14 @@ export default class BattleshipIO {
     if (this.heatmap.generating && now - this.#lastFrameTs < minFrameTimeMs) return
     this.#lastFrameTs = now
 
-    // Cancel the pending frame as its data is no longer relevant
-    this.#renderHeatmapController.abort()
-    this.#renderHeatmapController = new AbortController()
+    // Cancel the pending frame as its data is outdated
+    this.#frameController.abort()
+    this.#frameController = new AbortController()
 
     scheduler
       .postTask(() => this.renderHeatmap(), {
         priority: 'user-visible',
-        signal: this.#renderHeatmapController.signal,
+        signal: this.#frameController.signal,
       })
       .catch((err) => {
         if (err.name !== 'AbortError') throw err
@@ -356,7 +361,6 @@ export default class BattleshipIO {
 
     if (this.heatmap.getCell(row, col) === value) return
 
-    this.heatmap.generating = false
     this.heatmap.setCell(row, col, value)
     this.settingsStore.set('grid', this.heatmap.grid)
     this.renderGrid()
@@ -372,7 +376,6 @@ export default class BattleshipIO {
   }
 
   clearGrid(): void {
-    this.heatmap.generating = false
     this.heatmap.reset()
 
     this.settingsStore.set('grid', this.heatmap.grid)
@@ -380,35 +383,33 @@ export default class BattleshipIO {
   }
 
   setAllowTouching(allowTouching: boolean): void {
-    this.heatmap.generating = false
     this.heatmap.allowTouching = allowTouching
     this.settingsStore.set('allowTouching', this.heatmap.allowTouching)
   }
 
   startGenerating(): void {
     const largestDimension = Math.max(this.heatmap.rows, this.heatmap.cols)
+
     if (this.heatmap.boatLengths.some((boatLength) => boatLength > largestDimension)) {
       window.alert('The fleet contains a boat larger than the grid.')
       return
     }
 
-    if (this.heatmap.boatsSunkenError) {
-      const { boat, total, sunken } = this.heatmap.boatsSunkenError
+    if (this.boatsSunkenError) {
+      const { boat, total, sunken } = this.boatsSunkenError
 
       window.alert(
-        `More boats of length ${boat.length} are marked as sunken than exist on the board.
-${sunken} > ${total}`
+        `More boats of length ${boat.length} are marked as sunken than exist on the board.\n${sunken} sunken > ${total} on board`
       )
       return
     }
 
-    const wasGenerating = this.heatmap.generating
+    cancelAnimationFrame(this.#frameHandle)
+    this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
 
     this.heatmap.generating = false
-    this.heatmap.startGenerating(() => this.renderHeatmap(true))
+    this.heatmap.startGenerating(() => this.renderHeatmap())
     this.renderGrid()
-
-    if (!wasGenerating) requestAnimationFrame(() => this.scheduleRenderHeatmap())
   }
 
   #handleClick(e: PointerEvent): void {

@@ -1,16 +1,25 @@
-import BattleshipGrid from './grid'
+import BattleshipGrid, { type Boat } from './grid'
+
+export type GenerationJobData = {
+  rows: number
+  cols: number
+  boatLengths: number[]
+  boatsSunken: Boat[]
+  allowTouching: boolean
+  grid: number[][]
+}
+
+type GenerationJobResultData = Boat[] | false
 
 export default class BattleshipHeatmap extends BattleshipGrid {
-  #threads = 0
-
   /** The number of attempts to generate a valid configuration */
   public attempts = 0
 
-  /** The number of valid configurations used to accumulate the heatmap */
+  /** The number of valid configurations accumulated to produce the heatmap */
   public accumulated = 0
 
-  /** Number that is increased every generation to know if async results are outdated */
-  public id = 0
+  /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
+  public jobData: GenerationJobData | null = null
 
   /**
    * Represents the heatmap grid
@@ -25,19 +34,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
 
-  public onStartCalculating: () => void
-  public onStopCalculating: () => void
+  #onStartGenerating: () => void
+  #onStopGenerating: () => void
 
   constructor(
     grid: BattleshipGrid,
     generationSeconds: number,
-    onStartCalculating: () => void,
-    onStopCalculating: () => void
+    onStartGenerating: () => void,
+    onStopGenerating: () => void
   ) {
     if (!(grid instanceof BattleshipGrid)) {
       throw new TypeError('grid must be an instance of BattleshipGrid')
     }
     super(grid.rows, grid.cols, grid.boatLengths, grid.allowTouching, grid.grid)
+    this.onChange = () => (this.generating = false)
 
     this.heatmap = Array(this.rows)
       .fill(0)
@@ -48,29 +58,30 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     this.generationSeconds = generationSeconds
 
-    if (typeof onStartCalculating !== 'function') {
+    if (typeof onStartGenerating !== 'function') {
       throw new TypeError('onStartCalculating must be a function')
     }
-    this.onStartCalculating = onStartCalculating
+    this.#onStartGenerating = onStartGenerating
 
-    if (typeof onStopCalculating !== 'function') {
+    if (typeof onStopGenerating !== 'function') {
       throw new TypeError('onStopCalculating must be a function')
     }
-    this.onStopCalculating = onStopCalculating
+    this.#onStopGenerating = onStopGenerating
   }
 
   get generating() {
     return this.#generating
   }
 
-  set generating(value) {
+  set generating(value: boolean) {
     this.#generating = value
+
     if (value) {
-      this.onStartCalculating()
-      return
+      this.#onStartGenerating()
+    } else {
+      clearTimeout(this.generationTimeoutId)
+      this.#onStopGenerating()
     }
-    clearTimeout(this.generationTimeoutId)
-    this.onStopCalculating()
   }
 
   getHeat(row: number, col: number): number {
@@ -122,19 +133,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   resize(rows: number, cols: number): void {
-    this.reset()
     super.resize(rows, cols)
 
     this.heatmap = Array(rows)
       .fill(0)
       .map(() => Array(cols).fill(0))
+
+    this.attempts = 0
+    this.accumulated = 0
+    this.jobData = null
   }
 
   reset(): void {
-    this.generating = false
     super.reset()
     this.resetHeatmap()
-    this.id++
   }
 
   resetHeatmap(): void {
@@ -145,6 +157,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     this.attempts = 0
     this.accumulated = 0
+    this.jobData = null
   }
 
   /**
@@ -161,55 +174,60 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.accumulated++
   }
 
+  accumulateBoats(boats: Boat[]): void {
+    for (const boat of boats) {
+      BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+        this.heatmap[row][col]++
+      })
+    }
+    this.accumulated++
+  }
+
   /**
    * Calculate a heatmap by accumulating many random valid configurations.
    */
-  startGenerating(onCalculatingTimeout?: () => void): void {
-    if (this.#generating || this.boatsSunkenError) return
+  startGenerating(onGeneratingComplete?: () => void): void {
+    if (this.#generating) return
 
     this.generating = true
     this.generationStartTs = performance.now()
     this.resetHeatmap()
 
-    // Keep generating until timeout fires
-    this.generationTimeoutId = setTimeout(() => {
-      this.generating = false
-      onCalculatingTimeout?.()
-    }, this.generationSeconds * 1000)
-
-    for (; this.#threads < navigator.hardwareConcurrency; this.#threads++) this.#thread()
-  }
-
-  async #thread(): Promise<void> {
-    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
-      type: 'module',
-    })
-    const id = this.id
-
-    worker.addEventListener('message', (e: MessageEvent<number[][] | false>) => {
-      if (id === this.id && e.data) {
-        this.accumulateHeatmap(e.data)
-      }
-
-      if (!this.#generating) {
-        worker.terminate()
-        this.#threads--
-        return
-      }
-      this.#generateConfig(worker)
-    })
-    this.#generateConfig(worker)
-  }
-
-  #generateConfig(worker: Worker): void {
-    worker.postMessage({
+    this.jobData = {
       rows: this.rows,
       cols: this.cols,
       boatLengths: this.boatLengths,
       boatsSunken: this.boatsSunken,
       allowTouching: this.allowTouching,
       grid: this.grid,
+    }
+
+    // Keep generating until timeout fires
+    this.generationTimeoutId = setTimeout(() => {
+      this.generating = false
+      onGeneratingComplete?.()
+    }, this.generationSeconds * 1000)
+
+    for (let t = 0; t < navigator.hardwareConcurrency; t++) this.#startWorker()
+  }
+
+  async #startWorker(): Promise<void> {
+    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
+      type: 'module',
     })
-    this.attempts++
+    const jobData = this.jobData
+
+    worker.onmessage = (e: MessageEvent<GenerationJobResultData>) => {
+      const isRelevantJob = this.jobData && this.jobData === jobData
+
+      if (isRelevantJob) {
+        if (e.data) this.accumulateBoats(e.data)
+        this.attempts++
+      }
+
+      if (!this.#generating || !isRelevantJob) worker.terminate()
+    }
+
+    worker.postMessage({ ...jobData })
   }
 }
