@@ -183,8 +183,8 @@ export default class BattleshipGrid {
   }
 
   reset(): void {
-    for (let row = 0; row < this.rows - 1; row++) {
-      for (let col = 0; col < this.cols - 1; col++) {
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
         this.#grid[row][col] = 0
       }
     }
