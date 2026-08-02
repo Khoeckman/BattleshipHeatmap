@@ -256,11 +256,12 @@ export default class BattleshipIO {
         const isCursor = row === this.cursor.row && col === this.cursor.col
 
         if (!heat) {
-          cellEl.className = isCursor ? 'cell cursor' : 'cell'
+          cellEl.classList.value = 'cell'
+          if (isCursor) cellEl.classList.add('cursor')
           continue
         }
         cellEl.textContent = heatString
-        cellEl.className = 'cell chance'
+        cellEl.classList.value = 'cell chance'
 
         if (isCursor) cellEl.classList.add('cursor')
         if (isHotspot) cellEl.classList.add('hotspot')
@@ -275,7 +276,7 @@ export default class BattleshipIO {
     this.heat.hotspots = hotspots
 
     this.gridEl.classList.add('restart-hotspot-animation')
-    void this.gridEl.offsetWidth
+    // void this.gridEl.offsetWidth
     this.gridEl.classList.remove('restart-hotspot-animation')
   }
 

@@ -1,15 +1,16 @@
 import { type Boat, type PlaceableBoat } from '../battleship/grid'
-import BattleshipHeatmap, { type GenerationJobData } from '../battleship/heatmap'
 import BattleshipGrid from '../battleship/grid'
+import BattleshipHeatmap, { type GenerationJobData } from '../battleship/heatmap'
 
 let stride = 0
 const index = (row: number, col: number) => row * stride + col
 
 let tries: number
 
-// Counters indices
-const ATTEMPTS = 0
-const SUCCESS = 1
+// Data indices
+const GENERATING = 0
+const ATTEMPTS = 1
+const SUCCESS = 2
 
 self.onmessage = function (e: MessageEvent<GenerationJobData>) {
   const data = e.data
@@ -17,18 +18,24 @@ self.onmessage = function (e: MessageEvent<GenerationJobData>) {
   stride = data.cols
   tries = Math.sqrt(data.rows * data.cols) * 80
 
-  // Wait until main thread calls worker.terminate()
-  while (true) {
-    data.grid = structuredClone(grid)
-    generateConfig(data)
-  }
-}
-
-function generateConfig(data: GenerationJobData): number[][] | void {
-  const bitmap = new Uint8Array(data.rows * data.cols)
   const heatmap = new Uint32Array(data.heatmapBuffer)
   const counters = new Uint32Array(data.countersBuffer)
-  Atomics.add(counters, ATTEMPTS, 1)
+
+  // Wait until the main thread stores a zero at position GENERATING in the counters SAB
+  while (counters[GENERATING]) {
+    data.grid = structuredClone(grid)
+    generateConfig(data, heatmap, counters)
+    Atomics.add(counters, ATTEMPTS, 1)
+  }
+  self.close()
+}
+
+function generateConfig(
+  data: GenerationJobData,
+  heatmap: Uint32Array,
+  counters: Uint32Array
+): number[][] | void {
+  const bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
 
   const boatLengths = structuredClone(data.boatLengths)
   const boatsPlaced: Boat[] = []
@@ -86,10 +93,8 @@ function generateConfig(data: GenerationJobData): number[][] | void {
       const boatExpected = data.grid[row][col] & 3 // SUNK || HIT
       const boat = bitmap[index(row, col)]
 
-      if (boatExpected && !boat) {
-        // Mission failed, we'll get 'em next time
-        return
-      }
+      // Mission failed, we'll get 'em next time
+      if (boatExpected && !boat) return
     }
   }
 

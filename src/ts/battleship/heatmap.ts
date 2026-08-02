@@ -11,7 +11,10 @@ export type GenerationJobData = {
   countersBuffer: SharedArrayBuffer
 }
 
-// type GenerationJobResultData = Boat[] | false
+// Data indices
+const GENERATING = 0
+const ATTEMPTS = 1
+const SUCCESS = 2
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
@@ -29,14 +32,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * Counter 0 - Attempts - The number of attempts to generate a valid configuration.
    * Counter 1 - Accumulated - The number of valid configurations accumulated to produce the heatmap.
    */
-  #counters: Uint32Array<SharedArrayBuffer> = new Uint32Array(new SharedArrayBuffer(2 * 4))
+  #counters: Uint32Array<SharedArrayBuffer> = new Uint32Array(
+    new SharedArrayBuffer(3 * Uint32Array.BYTES_PER_ELEMENT)
+  )
 
   /**
    * Store references to all active workers so they can be terminated from the main-thread.
    */
   #workers: Worker[] = []
 
-  #generating = false
   public generationSeconds: number
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
@@ -58,8 +62,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super(grid.rows, grid.cols, grid.boatLengths, grid.allowTouching, grid.grid)
     this.onChange = () => (this.generating = false)
 
-    this.#heatmap = new Uint32Array(new SharedArrayBuffer(this.rows * this.cols * 4)) // 4 bytes per cell
-
+    this.#heatmap = new Uint32Array(
+      new SharedArrayBuffer(this.rows * this.cols * Uint32Array.BYTES_PER_ELEMENT)
+    )
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
     }
@@ -82,16 +87,16 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   get generating() {
-    return this.#generating
+    return !!Atomics.load(this.#counters, GENERATING)
   }
 
   set generating(value: boolean) {
-    if (this.#generating === value) return
+    if (!!Atomics.load(this.#counters, GENERATING) === value) return
 
     this.#stopWorkers()
 
     if (value) {
-      this.#generating = true
+      Atomics.store(this.#counters, GENERATING, +true)
       this.generationStartTs = performance.now()
       this.resetHeatmap()
 
@@ -116,26 +121,28 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
       this.#onStartGenerating()
     } else {
-      this.#generating = false
+      Atomics.store(this.#counters, GENERATING, +false)
       clearTimeout(this.generationTimeoutId)
       this.#onStopGenerating()
     }
   }
 
   get attempts() {
-    return this.#counters[0]
+    // return this.#counters[ATTEMPTS]
+    return Atomics.load(this.#counters, ATTEMPTS)
   }
 
   set attempts(value) {
-    this.#counters[0] = value
+    this.#counters[ATTEMPTS] = value
   }
 
   get success() {
-    return this.#counters[1]
+    // return this.#counters[SUCCESS]
+    return Atomics.load(this.#counters, SUCCESS)
   }
 
   set success(value) {
-    this.#counters[1] = value
+    this.#counters[SUCCESS] = value
   }
 
   index(row: number, col: number): number {
@@ -197,7 +204,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   resize(rows: number, cols: number): void {
     super.resize(rows, cols)
 
-    this.#heatmap = new Uint32Array(new SharedArrayBuffer(this.rows * this.cols * 4)) // 4 bytes per cell
+    this.#heatmap = new Uint32Array(
+      new SharedArrayBuffer(this.rows * this.cols * Uint32Array.BYTES_PER_ELEMENT)
+    )
     this.attempts = 0
     this.success = 0
     this.jobData = null
