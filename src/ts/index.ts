@@ -18,7 +18,8 @@ const clearButton = document.getElementById('clear') as HTMLButtonElement
 const resetButton = document.getElementById('reset') as HTMLButtonElement
 
 // Input buttons
-const inputButtons = [...(document.getElementById('input') as HTMLInputElement).children]
+type InputButton = HTMLButtonElement & { dataset: { value: `${number}` } }
+const inputButtons = [...document.querySelectorAll('#input li button')] as InputButton[]
 
 // Generation info
 const generationInfo = document.getElementById('generation') as HTMLElement
@@ -116,8 +117,6 @@ resetButton.addEventListener('click', () => {
 })
 
 // Input buttons
-inputButtons.forEach((button, value: number) => {
-  button.addEventListener('click', () => {
-    io.setCursorCell(value)
-  })
+inputButtons.forEach((button) => {
+  button.addEventListener('click', () => io.setCursorCell(+button.dataset.value))
 })

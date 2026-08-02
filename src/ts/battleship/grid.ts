@@ -8,6 +8,19 @@ export default class BattleshipGrid {
   public static readonly HIT = 2
   public static readonly MISS = 4
 
+  public static forEachBoatSegment(boat: Boat, callback: (row: number, col: number) => void): void {
+    let row = boat.row
+    let col = boat.col
+    let dr = +boat.vertical
+    let dc = +!boat.vertical
+
+    for (let segment = 0; segment < boat.length; segment++) {
+      callback(row, col)
+      row += dr
+      col += dc
+    }
+  }
+
   #rows = 0
   #cols = 0
   #boatLengths: number[] = []
@@ -17,7 +30,6 @@ export default class BattleshipGrid {
    * based on adjacent cells with value SUNK
    */
   #boatsSunken: Boat[] = []
-  #boatsSunkenError: null | BoatsTooManyError = null
 
   #allowTouching = false
 
@@ -31,6 +43,8 @@ export default class BattleshipGrid {
    * 3 = miss (water)
    */
   #grid: number[][] = []
+
+  #onChange: (() => void) | null = null
 
   constructor(
     rows: number,
@@ -46,7 +60,6 @@ export default class BattleshipGrid {
 
     if (grid.length) {
       this.grid = grid
-      this.updateBoatsSunken()
     } else {
       this.grid = Array(this.rows)
         .fill(0)
@@ -58,7 +71,7 @@ export default class BattleshipGrid {
     return this.#rows
   }
 
-  set rows(value) {
+  private set rows(value: number) {
     if (!(value >= 1 && value <= 26)) {
       throw new RangeError('grid dimensions must be between 1 and 26')
     }
@@ -69,7 +82,7 @@ export default class BattleshipGrid {
     return this.#cols
   }
 
-  set cols(value) {
+  private set cols(value: number) {
     if (!(value >= 1 && value <= 26)) {
       throw new RangeError('grid dimensions must be between 1 and 26')
     }
@@ -80,7 +93,7 @@ export default class BattleshipGrid {
     return this.#boatLengths
   }
 
-  set boatLengths(value) {
+  set boatLengths(value: number[]) {
     if (!Array.isArray(value) || !value.every((length) => length > 0 && length <= 26)) {
       throw new RangeError('boatLengths must be an array of numbers between 1 and 26')
     }
@@ -88,14 +101,11 @@ export default class BattleshipGrid {
       throw new RangeError('boatLengths must contain at least one boat')
     }
     this.#boatLengths = [...value].sort((a, b) => b - a)
+    this.#onChange?.()
   }
 
   get boatsSunken() {
     return this.#boatsSunken
-  }
-
-  get boatsSunkenError() {
-    return this.#boatsSunkenError
   }
 
   get allowTouching() {
@@ -104,13 +114,14 @@ export default class BattleshipGrid {
 
   set allowTouching(value) {
     this.#allowTouching = !!value
+    this.#onChange?.()
   }
 
   get grid() {
     return this.#grid
   }
 
-  set grid(value) {
+  set grid(value: number[][]) {
     if (
       !Array.isArray(value) ||
       !value.every((row) =>
@@ -119,31 +130,41 @@ export default class BattleshipGrid {
     ) {
       throw new TypeError('grid must be a two-dimensional array with values: 0, 1, 2 or 4')
     }
-    if (value.length !== this.rows || !value.every((row) => row.length === this.cols)) {
+    if (value.length !== this.#rows || !value.every((row) => row.length === this.#cols)) {
       throw new RangeError('grid dimensions must match rows and cols')
     }
     this.#grid = value
+    this.updateBoatsSunken()
+    this.#onChange?.()
+  }
+
+  set onChange(value: (() => void) | null) {
+    if (value && typeof value !== 'function') {
+      throw new TypeError('onChange must be a function')
+    }
+    this.#onChange = value
   }
 
   getCell(row: number, col: number): number {
-    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
+    if (row < 0 || row >= this.#rows || col < 0 || col >= this.#cols) {
       throw new RangeError('cell coordinates out of bounds')
     }
-    return this.grid[row][col]
+    return this.#grid[row][col]
   }
 
   setCell(row: number, col: number, value: number): void {
-    if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
+    if (row < 0 || row >= this.#rows || col < 0 || col >= this.#cols) {
       throw new RangeError('cell coordinates out of bounds')
     }
-    this.grid[row][col] = value
+    this.#grid[row][col] = value
+    this.#onChange?.()
   }
 
   resize(rows: number, cols: number): void {
     this.rows = rows
     this.cols = cols
 
-    const newGrid = Array(rows)
+    const grid = Array(rows)
       .fill(0)
       .map(() => Array(cols).fill(0))
 
@@ -153,20 +174,35 @@ export default class BattleshipGrid {
 
       for (let col in this.grid[row]) {
         if (+col >= cols) break
-        newGrid[row][col] = this.grid[row][col]
+        grid[row][col] = this.grid[row][col]
       }
     }
-    this.grid = newGrid
+    this.#grid = grid
+    this.updateBoatsSunken()
+    this.#onChange?.()
   }
 
   reset(): void {
-    for (let row in this.grid) {
-      for (let col in this.grid[row]) {
-        this.grid[row][col] = 0
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        this.#grid[row][col] = 0
       }
     }
+    this.updateBoatsSunken()
+    this.#onChange?.()
   }
 
+  /**
+   * Looks for a corner in the grid.
+   *
+   * Example of a corner made out of hits (H):
+   * X H X
+   * X H H
+   * X X X
+   *
+   * @param values OR-relation between allowed values to form a corner.
+   * @returns The position of the first corner made out of `values` or false if none were found.
+   */
   findCorner(...values: number[]): { row: number; col: number } | false {
     for (let row = 0; row < this.rows - 1; row++) {
       for (let col = 0; col < this.cols - 1; col++) {
@@ -181,7 +217,7 @@ export default class BattleshipGrid {
     return false
   }
 
-  updateBoatsSunken(): void {
+  updateBoatsSunken(): BoatsTooManyError | void {
     this.#boatsSunken = []
 
     const usedCells = new Set<string>()
@@ -248,20 +284,13 @@ export default class BattleshipGrid {
     }
 
     // Update boatsSunkenValid
-    this.#boatsSunkenError = null
     const boatsSet = new Set(this.boatsSunken)
 
     for (const boat of boatsSet) {
-      const boatAmount = this.boatLengths.filter((length) => length === boat.length).length
-      const boatSunkenAmount = this.boatsSunken.filter((b) => b.length === boat.length).length
+      const boatsTotal = this.boatLengths.filter((length) => length === boat.length).length
+      const boatsSunken = this.boatsSunken.filter((b) => b.length === boat.length).length
 
-      if (boatSunkenAmount > boatAmount) {
-        this.#boatsSunkenError = { boat, total: boatAmount, sunken: boatSunkenAmount }
-        break
-      }
+      if (boatsSunken > boatsTotal) return { boat, total: boatsTotal, sunken: boatsSunken }
     }
-
-    // TODO: temporarily reset errors because they appear on valid configurations
-    if (this.allowTouching) this.#boatsSunkenError = null
   }
 }
