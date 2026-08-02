@@ -90,7 +90,14 @@
     color: var(--c72);
   }
 
-  @media (width < 40em) {
+  @media (width < 45em) {
+    > * {
+      top: 1rem;
+      left: 1rem;
+    }
+  }
+
+  @media (width < 20em) {
     display: none;
   }
 

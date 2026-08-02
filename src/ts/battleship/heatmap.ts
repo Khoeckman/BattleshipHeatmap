@@ -7,17 +7,13 @@ export type GenerationJobData = {
   boatsSunken: Boat[]
   allowTouching: boolean
   grid: number[][]
+  heatmapBuffer: SharedArrayBuffer
+  countersBuffer: SharedArrayBuffer
 }
 
-type GenerationJobResultData = Boat[] | false
+// type GenerationJobResultData = Boat[] | false
 
 export default class BattleshipHeatmap extends BattleshipGrid {
-  /** The number of attempts to generate a valid configuration */
-  public attempts = 0
-
-  /** The number of valid configurations accumulated to produce the heatmap */
-  public accumulated = 0
-
   /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
   public jobData: GenerationJobData | null = null
 
@@ -27,21 +23,34 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * The value in each cell represents the total number of times a boat crossed
    * through that cell inside of a randomly found valid configuration.
    */
-  public heatmap: number[][] = []
+  #heatmap: Uint32Array<SharedArrayBuffer>
 
-  #generating = true
+  /**
+   * Counter 0 - Attempts - The number of attempts to generate a valid configuration.
+   * Counter 1 - Accumulated - The number of valid configurations accumulated to produce the heatmap.
+   */
+  #counters: Uint32Array<SharedArrayBuffer> = new Uint32Array(new SharedArrayBuffer(2 * 4))
+
+  /**
+   * Store references to all active workers so they can be terminated from the main-thread.
+   */
+  #workers: Worker[] = []
+
+  #generating = false
   public generationSeconds: number
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
 
   #onStartGenerating: () => void
   #onStopGenerating: () => void
+  #onFinishGenerating: () => void
 
   constructor(
     grid: BattleshipGrid,
     generationSeconds: number,
     onStartGenerating: () => void,
-    onStopGenerating: () => void
+    onStopGenerating: () => void,
+    onFinishGenerating: () => void
   ) {
     if (!(grid instanceof BattleshipGrid)) {
       throw new TypeError('grid must be an instance of BattleshipGrid')
@@ -49,9 +58,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super(grid.rows, grid.cols, grid.boatLengths, grid.allowTouching, grid.grid)
     this.onChange = () => (this.generating = false)
 
-    this.heatmap = Array(this.rows)
-      .fill(0)
-      .map(() => Array(this.cols).fill(0))
+    this.#heatmap = new Uint32Array(new SharedArrayBuffer(this.rows * this.cols * 4)) // 4 bytes per cell
 
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
@@ -67,6 +74,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       throw new TypeError('onStopCalculating must be a function')
     }
     this.#onStopGenerating = onStopGenerating
+
+    if (typeof onFinishGenerating !== 'function') {
+      throw new TypeError('onStopCalculating must be a function')
+    }
+    this.#onFinishGenerating = onFinishGenerating
   }
 
   get generating() {
@@ -74,41 +86,89 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set generating(value: boolean) {
-    this.#generating = value
+    if (this.#generating === value) return
+
+    this.#stopWorkers()
 
     if (value) {
+      this.#generating = true
+      this.generationStartTs = performance.now()
+      this.resetHeatmap()
+
+      this.jobData = {
+        rows: this.rows,
+        cols: this.cols,
+        boatLengths: this.boatLengths,
+        boatsSunken: this.boatsSunken,
+        allowTouching: this.allowTouching,
+        grid: this.grid,
+        heatmapBuffer: this.#heatmap.buffer,
+        countersBuffer: this.#counters.buffer,
+      }
+
+      // Keep generating until timeout fires
+      this.generationTimeoutId = setTimeout(() => {
+        this.generating = false
+        this.#onFinishGenerating()
+      }, this.generationSeconds * 1000)
+
+      for (let t = 0; t < navigator.hardwareConcurrency; t++) this.#startWorker()
+
       this.#onStartGenerating()
     } else {
+      this.#generating = false
       clearTimeout(this.generationTimeoutId)
       this.#onStopGenerating()
     }
+  }
+
+  get attempts() {
+    return this.#counters[0]
+  }
+
+  set attempts(value) {
+    this.#counters[0] = value
+  }
+
+  get success() {
+    return this.#counters[1]
+  }
+
+  set success(value) {
+    this.#counters[1] = value
+  }
+
+  index(row: number, col: number): number {
+    return row * this.cols + col
   }
 
   getHeat(row: number, col: number): number {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) {
       throw new RangeError('cell coordinates out of bounds')
     }
-    return this.heatmap[row][col] / Math.max(1, this.accumulated) // Normalize
+    return this.#heatmap[this.index(row, col)] / Math.max(1, this.success) // Normalize
   }
 
   getHeatRange(): { min: number; max: number } {
     let min = Infinity
     let max = -Infinity
 
+    let i = 0
+
     for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
+      for (let col = 0; col < this.cols; col++, i++) {
         // SUNK || HIT
         if (this.grid[row][col] & 3) continue
 
-        const heat = this.heatmap[row][col]
+        const heat = this.#heatmap[i]
         if (heat < min) min = heat
         if (heat > max) max = heat
       }
     }
 
     // Normalize
-    min /= Math.max(1, this.accumulated)
-    max /= Math.max(1, this.accumulated)
+    min /= Math.max(1, this.success)
+    max /= Math.max(1, this.success)
 
     return { min, max }
   }
@@ -119,14 +179,16 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (!minHotspotHeat) return hotspots
 
     // Denormalize the comparator instead of normalizing each candidate
-    minHotspotHeat *= Math.max(1, this.accumulated)
+    minHotspotHeat *= Math.max(1, this.success)
+
+    let i = 0
 
     for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
+      for (let col = 0; col < this.cols; col++, i++) {
         // SUNK || HIT
         if (this.grid[row][col] & 3) continue
 
-        if (this.heatmap[row][col] >= minHotspotHeat) hotspots.push({ row, col })
+        if (this.#heatmap[i] >= minHotspotHeat) hotspots.push({ row, col })
       }
     }
     return hotspots
@@ -135,12 +197,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   resize(rows: number, cols: number): void {
     super.resize(rows, cols)
 
-    this.heatmap = Array(rows)
-      .fill(0)
-      .map(() => Array(cols).fill(0))
-
+    this.#heatmap = new Uint32Array(new SharedArrayBuffer(this.rows * this.cols * 4)) // 4 bytes per cell
     this.attempts = 0
-    this.accumulated = 0
+    this.success = 0
     this.jobData = null
   }
 
@@ -150,84 +209,24 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   resetHeatmap(): void {
-    for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
-        this.heatmap[row][col] = 0
-      }
+    for (let i = 0; i < this.#heatmap.length; i++) {
+      this.#heatmap[i] = 0
     }
     this.attempts = 0
-    this.accumulated = 0
+    this.success = 0
     this.jobData = null
   }
 
-  /**
-   * Add the values of two heatmaps of the same size together.
-   *
-   * @param other The other heatmap to accumulate onto the current
-   */
-  accumulateHeatmap(other: number[][]): void {
-    for (let row = 0; row < this.rows; row++) {
-      for (let col = 0; col < this.cols; col++) {
-        this.heatmap[row][col] += other[row][col]
-      }
-    }
-    this.accumulated++
-  }
-
-  accumulateBoats(boats: Boat[]): void {
-    for (const boat of boats) {
-      BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-        this.heatmap[row][col]++
-      })
-    }
-    this.accumulated++
-  }
-
-  /**
-   * Calculate a heatmap by accumulating many random valid configurations.
-   */
-  startGenerating(onGeneratingComplete?: () => void): void {
-    if (this.#generating) return
-
-    this.generating = true
-    this.generationStartTs = performance.now()
-    this.resetHeatmap()
-
-    this.jobData = {
-      rows: this.rows,
-      cols: this.cols,
-      boatLengths: this.boatLengths,
-      boatsSunken: this.boatsSunken,
-      allowTouching: this.allowTouching,
-      grid: this.grid,
-    }
-
-    // Keep generating until timeout fires
-    this.generationTimeoutId = setTimeout(() => {
-      this.generating = false
-      onGeneratingComplete?.()
-    }, this.generationSeconds * 1000)
-
-    for (let t = 0; t < navigator.hardwareConcurrency; t++) this.#startWorker()
-  }
-
-  async #startWorker(): Promise<void> {
+  #startWorker(): void {
     const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
       type: 'module',
     })
-    const jobData = this.jobData
+    this.#workers.push(worker)
+    worker.postMessage({ ...this.jobData })
+  }
 
-    worker.onmessage = (e: MessageEvent<GenerationJobResultData>) => {
-      const isRelevantJob = this.jobData && this.jobData === jobData
-
-      if (isRelevantJob) {
-        if (e.data) this.accumulateBoats(e.data)
-        this.attempts++
-      }
-
-      if (!this.#generating || !isRelevantJob) worker.terminate()
-    }
-
-    worker.postMessage({ ...jobData })
+  #stopWorkers(): void {
+    for (const worker of this.#workers) worker.terminate()
+    this.#workers = []
   }
 }

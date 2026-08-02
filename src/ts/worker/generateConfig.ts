@@ -2,24 +2,33 @@ import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipHeatmap, { type GenerationJobData } from '../battleship/heatmap'
 import BattleshipGrid from '../battleship/grid'
 
+let stride = 0
+const index = (row: number, col: number) => row * stride + col
+
+let tries: number
+
+// Counters indices
+const ATTEMPTS = 0
+const SUCCESS = 1
+
 self.onmessage = function (e: MessageEvent<GenerationJobData>) {
   const data = e.data
   const grid = structuredClone(data.grid)
+  stride = data.cols
+  tries = Math.sqrt(data.rows * data.cols) * 80
 
   // Wait until main thread calls worker.terminate()
-  let i = 0
-  while (i++ < 1e9) {
+  while (true) {
     data.grid = structuredClone(grid)
     generateConfig(data)
   }
 }
 
 function generateConfig(data: GenerationJobData): number[][] | void {
-  const heatmap = Array(data.rows)
-    .fill(0)
-    .map(() => Array(data.cols).fill(0))
-
-  // const heatmap = new Uint32Array(data.rows * data.cols)
+  const bitmap = new Uint8Array(data.rows * data.cols)
+  const heatmap = new Uint32Array(data.heatmapBuffer)
+  const counters = new Uint32Array(data.countersBuffer)
+  Atomics.add(counters, ATTEMPTS, 1)
 
   const boatLengths = structuredClone(data.boatLengths)
   const boatsPlaced: Boat[] = []
@@ -43,7 +52,6 @@ function generateConfig(data: GenerationJobData): number[][] | void {
     const placeVerCells = data.cols * c
 
     let boatPlaced = false
-    const tries = Math.sqrt(data.rows * data.cols) * 80
 
     for (let t = 0; t < tries; t++) {
       const vertical = !(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
@@ -59,7 +67,7 @@ function generateConfig(data: GenerationJobData): number[][] | void {
 
       const boat = { length: boatLength, row, col, vertical }
 
-      if (canPlaceBoat(data, heatmap, boat) && placeBoat(data, heatmap, boat)) {
+      if (canPlaceBoat(data, bitmap, boat) && placeBoat(data, bitmap, boat)) {
         boatPlaced = true
         boatsPlaced.push(boat)
         break
@@ -68,7 +76,6 @@ function generateConfig(data: GenerationJobData): number[][] | void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      self.postMessage(false)
       return
     }
   }
@@ -77,18 +84,22 @@ function generateConfig(data: GenerationJobData): number[][] | void {
   for (let row = 0; row < data.rows; row++) {
     for (let col = 0; col < data.cols; col++) {
       const boatExpected = data.grid[row][col] & 3 // SUNK || HIT
-      const boat = heatmap[row][col]
+      const boat = bitmap[index(row, col)]
 
       if (boatExpected && !boat) {
         // Mission failed, we'll get 'em next time
-        self.postMessage(false)
         return
       }
     }
   }
 
   // Successful configuration found
-  self.postMessage(boatsPlaced)
+  for (const boat of boatsPlaced) {
+    BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+      Atomics.add(heatmap, index(row, col), 1)
+    })
+  }
+  Atomics.add(counters, SUCCESS, 1)
 }
 
 /**
@@ -96,7 +107,7 @@ function generateConfig(data: GenerationJobData): number[][] | void {
  */
 function canPlaceBoat(
   data: GenerationJobData,
-  heatmap: number[][],
+  bitmap: Uint8Array,
   boat: Boat
 ): boat is PlaceableBoat {
   let row = boat.row
@@ -113,7 +124,7 @@ function canPlaceBoat(
 
   // Disallow placing the boat on another boat or in water
   for (let segment = 0; segment < boat.length; segment++) {
-    if (heatmap[row][col] || data.grid[row][col] === BattleshipHeatmap.MISS) return false
+    if (bitmap[index(row, col)] || data.grid[row][col] === BattleshipHeatmap.MISS) return false
     row += dr
     col += dc
   }
@@ -125,7 +136,7 @@ function canPlaceBoat(
  *
  * @returns true if the boat was placed, false if it could not be placed.
  */
-function placeBoat(data: GenerationJobData, heatmap: number[][], boat: PlaceableBoat): boolean {
+function placeBoat(data: GenerationJobData, bitmap: Uint8Array, boat: PlaceableBoat): boolean {
   if (!data.allowTouching) {
     // Should fail if boat is placed next to but not on a HIT clue
     // if (true) {
@@ -160,7 +171,7 @@ function placeBoat(data: GenerationJobData, heatmap: number[][], boat: Placeable
   }
 
   BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-    heatmap[row][col] = 1
+    bitmap[index(row, col)] = 1
     data.grid[row][col] = BattleshipHeatmap.SUNK
   })
   return true

@@ -96,12 +96,14 @@ export default class BattleshipIO {
 
     const onStartCalculating = () => this.updateGenerateButton()
     const onStopCalculating = () => this.updateGenerateButton()
+    const onFinishGenerating = () => this.renderHeatmap()
 
     this.heatmap = new BattleshipHeatmap(
       grid,
       settings.generationSeconds,
       onStartCalculating,
-      onStopCalculating
+      onStopCalculating,
+      onFinishGenerating
     )
 
     this.#handleClick.bind(this)
@@ -219,14 +221,17 @@ export default class BattleshipIO {
 
     // Slowly rise from 98% to 100% the more successful configurations have been accumulated
     const hotspotMargin =
-      0.98 + 0.02 * (1 - Math.min(1, 1 / (this.heatmap.accumulated / 20_000)) ** 0.3)
+      0.98 + 0.02 * (1 - Math.min(1, 1 / (this.heatmap.success / 20_000)) ** 0.3)
     const hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
     minHeat *= 0.9
     maxHeat *= 1.1
 
-    const checkHotspot = (hotspots: { row: number; col: number }[], row: number, col: number) =>
-      hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
+    const checkHotspot = (
+      hotspots: { row: number; col: number }[],
+      row: number,
+      col: number
+    ): boolean => hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
 
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
@@ -318,7 +323,7 @@ export default class BattleshipIO {
       notation: 'compact',
       maximumSignificantDigits: 3,
       maximumFractionDigits: 2,
-    }).format(this.heatmap.accumulated)
+    }).format(this.heatmap.success)
   }
 
   renderCursor(): void {
@@ -407,8 +412,10 @@ export default class BattleshipIO {
     cancelAnimationFrame(this.#frameHandle)
     this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
 
+    // Run both branches of the setter
     this.heatmap.generating = false
-    this.heatmap.startGenerating(() => this.renderHeatmap())
+    this.heatmap.generating = true
+
     this.renderGrid()
   }
 
