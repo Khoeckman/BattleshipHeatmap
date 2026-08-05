@@ -7,10 +7,12 @@ const index = (row: number, col: number) => row * stride + col
 
 let tries: number
 
-// Data indices
-const GENERATING = 0
+// Shared data indices
+const JOB_ID = 0
 const ATTEMPTS = 1
 const SUCCESS = 2
+const LOCK = 3
+const WRITING = 4
 
 self.onmessage = function (e: MessageEvent<GenerationJobData>) {
   const data = e.data
@@ -19,13 +21,12 @@ self.onmessage = function (e: MessageEvent<GenerationJobData>) {
   tries = Math.sqrt(data.rows * data.cols) * 80
 
   const heatmap = new Uint32Array(data.heatmapBuffer)
-  const counters = new Uint32Array(data.countersBuffer)
+  const shared = new Int32Array(data.sharedBuffer)
 
-  // Wait until the main thread stores a zero at position GENERATING in the counters SAB
-  while (counters[GENERATING]) {
+  // Keep generating until the main thread increases the value at index JOB_ID in the SAB
+  while (shared[JOB_ID] === data.id) {
     data.grid = structuredClone(grid)
-    generateConfig(data, heatmap, counters)
-    Atomics.add(counters, ATTEMPTS, 1)
+    generateConfig(data, heatmap, shared)
   }
   self.close()
 }
@@ -33,7 +34,7 @@ self.onmessage = function (e: MessageEvent<GenerationJobData>) {
 function generateConfig(
   data: GenerationJobData,
   heatmap: Uint32Array,
-  counters: Uint32Array
+  shared: Int32Array
 ): number[][] | void {
   const bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
 
@@ -83,6 +84,7 @@ function generateConfig(
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
+      if (shared[JOB_ID] === data.id) Atomics.add(shared, ATTEMPTS, 1)
       return
     }
   }
@@ -94,17 +96,29 @@ function generateConfig(
       const boat = bitmap[index(row, col)]
 
       // Mission failed, we'll get 'em next time
-      if (boatExpected && !boat) return
+      if (boatExpected && !boat) {
+        if (shared[JOB_ID] === data.id) Atomics.add(shared, ATTEMPTS, 1)
+        return
+      }
     }
   }
 
+  if (shared[JOB_ID] !== data.id) return
+
   // Successful configuration found
+
+  Atomics.wait(shared, LOCK, 1)
+  Atomics.add(shared, WRITING, 1)
+
+  Atomics.add(shared, ATTEMPTS, 1)
+  Atomics.add(shared, SUCCESS, 1)
+
   for (const boat of boatsPlaced) {
     BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
       Atomics.add(heatmap, index(row, col), 1)
     })
   }
-  Atomics.add(counters, SUCCESS, 1)
+  Atomics.sub(shared, WRITING, 1)
 }
 
 /**

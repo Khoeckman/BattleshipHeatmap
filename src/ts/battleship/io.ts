@@ -26,7 +26,7 @@ export default class BattleshipIO {
   }
 
   private static CLUE_SYMBOL: { [key: number]: string } = {
-    0: '',
+    0: '~',
     1: 'S',
     2: 'H',
     4: '~',
@@ -101,8 +101,8 @@ export default class BattleshipIO {
     this.heatmap = new BattleshipHeatmap(
       grid,
       settings.generationSeconds,
-      onStartCalculating,
-      onStopCalculating,
+      onStartGenerating,
+      onStopGenerating,
       onFinishGenerating
     )
 
@@ -120,7 +120,9 @@ export default class BattleshipIO {
 
     for (let boatLength of this.heatmap.boatLengths) {
       const boatEl = document.createElement('li')
-      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength]
+
+      if (boatLength >= 2 && boatLength <= 5)
+        boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
 
       for (let segment = 0; segment < boatLength; segment++) {
         const segmentEl = document.createElement('div')
@@ -147,9 +149,10 @@ export default class BattleshipIO {
         boatEl.removeAttribute('class')
         continue
       }
+      boatEl.classList.value = 'sunk'
 
-      boatEl.className = 'sunk'
-      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength]
+      if (boatLength >= 2 && boatLength <= 5)
+        boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
 
       boatsSunkenSizes.splice(
         boatsSunkenSizes.findIndex((b) => b === boatLength),
@@ -194,7 +197,7 @@ export default class BattleshipIO {
       this.gridEl.appendChild(rowEl)
     }
 
-    // Should be rerendered because this function destroyed the cell with the 'cursor' class
+    // Should be rerendered because this function destroyed the cell with the cursor class
     this.renderCursor()
   }
 
@@ -215,7 +218,9 @@ export default class BattleshipIO {
     this.heat.hotspots = []
   }
 
-  renderHeatmap(): void {
+  async renderHeatmap(): Promise<void> {
+    await this.heatmap.snapshot()
+
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
@@ -266,7 +271,8 @@ export default class BattleshipIO {
         if (isCursor) cellEl.classList.add('cursor')
         if (isHotspot) cellEl.classList.add('hotspot')
 
-        const normalizedHeat = (heat - minHeat) / (maxHeat - minHeat)
+        const heatDiff = maxHeat - minHeat
+        const normalizedHeat = !heatDiff ? 0.5 : (heat - minHeat) / (maxHeat - minHeat)
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
 
@@ -280,7 +286,8 @@ export default class BattleshipIO {
     this.gridEl.classList.remove('restart-hotspot-animation')
   }
 
-  scheduleRenderHeatmap(): void {
+  async scheduleRenderHeatmap(): Promise<void> {
+    await this.heatmap.snapshot()
     this.renderGenerationInfo()
 
     if (this.heatmap.generating) {
@@ -314,17 +321,19 @@ export default class BattleshipIO {
     // Convert to seconds with one decimal
     this.dataEls.timeData.innerText = (generationTimeMs / 1000).toFixed(1) + 's'
 
-    this.dataEls.attemptsData.innerText = Intl.NumberFormat('en-US', {
+    this.dataEls.attemptsData.textContent = Intl.NumberFormat('en-US', {
       notation: 'compact',
       maximumSignificantDigits: 3,
       maximumFractionDigits: 2,
     }).format(this.heatmap.attempts)
+    this.dataEls.attemptsData.title = String(this.heatmap.attempts)
 
-    this.dataEls.configsData.innerText = Intl.NumberFormat('en-US', {
+    this.dataEls.configsData.textContent = Intl.NumberFormat('en-US', {
       notation: 'compact',
       maximumSignificantDigits: 3,
       maximumFractionDigits: 2,
     }).format(this.heatmap.success)
+    this.dataEls.configsData.title = String(this.heatmap.success)
   }
 
   renderCursor(): void {
