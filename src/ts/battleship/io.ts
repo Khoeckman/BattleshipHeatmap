@@ -94,8 +94,11 @@ export default class BattleshipIO {
       settings.grid
     )
 
-    const onStartCalculating = () => this.updateGenerateButton()
-    const onStopCalculating = () => this.updateGenerateButton()
+    const onStartGenerating = () => this.updateGenerateButton()
+    const onStopGenerating = () => {
+      this.updateGenerateButton()
+      cancelAnimationFrame(this.#frameHandle)
+    }
     const onFinishGenerating = () => this.renderHeatmap()
 
     this.heatmap = new BattleshipHeatmap(
