@@ -2,7 +2,7 @@ import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type GenerationJobData } from '../battleship/heatmap'
 
-let stride = 0
+let stride: number
 const index = (row: number, col: number) => row * stride + col
 
 let tries: number
@@ -12,7 +12,7 @@ const JOB_ID = 0
 const ATTEMPTS = 1
 const SUCCESS = 2
 const LOCK = 3
-const WRITING = 4
+const WRITERS = 4
 
 self.onmessage = function (e: MessageEvent<GenerationJobData>) {
   const data = e.data
@@ -108,7 +108,7 @@ function generateConfig(
   // Successful configuration found
 
   Atomics.wait(shared, LOCK, 1)
-  Atomics.add(shared, WRITING, 1)
+  Atomics.add(shared, WRITERS, 1)
 
   Atomics.add(shared, ATTEMPTS, 1)
   Atomics.add(shared, SUCCESS, 1)
@@ -118,7 +118,7 @@ function generateConfig(
       Atomics.add(heatmap, index(row, col), 1)
     })
   }
-  Atomics.sub(shared, WRITING, 1)
+  Atomics.sub(shared, WRITERS, 1)
 }
 
 /**

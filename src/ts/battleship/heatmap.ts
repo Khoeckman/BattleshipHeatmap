@@ -17,7 +17,7 @@ const JOB_ID = 0
 const ATTEMPTS = 1
 const SUCCESS = 2
 const LOCK = 3
-const WRITING = 4
+const WRITERS = 4
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
@@ -153,7 +153,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   async snapshot() {
     Atomics.store(this.#sharedLive, LOCK, 1)
 
-    while (this.#sharedLive[WRITING]) await scheduler.yield()
+    do {
+      await scheduler.yield()
+    } while (this.#sharedLive[WRITERS])
 
     this.#shared[ATTEMPTS] = this.#sharedLive[ATTEMPTS]
     this.#shared[SUCCESS] = this.#sharedLive[SUCCESS]
