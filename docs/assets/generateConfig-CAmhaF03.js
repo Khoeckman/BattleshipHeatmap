@@ -1,1 +1,0 @@
-(function(){self.onmessage=function(e){let{heatmap:t}=e.data;self.postMessage(t)}})();
