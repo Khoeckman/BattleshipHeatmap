@@ -127,7 +127,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       this.#onStartGenerating()
     } else {
       this.#generating = false
+
+      // Stop workers
+      this.jobData = null
+      Atomics.add(this.#sharedLive, JOB_ID, 1)
+
       clearTimeout(this.generationTimeoutId)
+
       this.#onStopGenerating()
     }
   }
