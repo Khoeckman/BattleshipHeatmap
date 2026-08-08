@@ -107,18 +107,21 @@ function generateConfig(
 
   // Successful configuration found
 
-  Atomics.wait(shared, LOCK, 1)
-  Atomics.add(shared, WRITERS, 1)
+  // Atomics.wait(shared, LOCK, 1)
+  // Atomics.add(shared, WRITERS, 1)
 
-  Atomics.add(shared, ATTEMPTS, 1)
-  Atomics.add(shared, SUCCESS, 1)
+  // Atomics.add(shared, ATTEMPTS, 1)
+  // Atomics.add(shared, SUCCESS, 1)
+  shared[ATTEMPTS]++
+  shared[SUCCESS]++
 
-  for (const boat of boatsPlaced) {
-    BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-      Atomics.add(heatmap, index(row, col), 1)
-    })
-  }
-  Atomics.sub(shared, WRITERS, 1)
+  // for (const boat of boatsPlaced) {
+  //   BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+  //     // Atomics.add(heatmap, index(row, col), 1)
+  //     heatmap[index(row, col)]++
+  //   })
+  // }
+  // Atomics.sub(shared, WRITERS, 1)
 }
 
 /**

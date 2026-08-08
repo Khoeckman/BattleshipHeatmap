@@ -41,9 +41,17 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
 
+[ ] fix UI Bug: Pressing enter in an input field twice causes UI to show as if it stopped generating, until the generation timer finishes and updates the heatmap at once proving it was generating the whole time.
+
 [ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
 
-[ ] if 2 H's are next to eachother, it means there is a boat lying there which is at least 3 long, because if it were only 2 it should have been sunken already (marked with S's)
+[ ] Update generation algorithm: if 2 H's are next to eachother, it means there is a boat lying there which is at least 3 long, because if it were only 2 it should have been sunken already (marked with S's)
+
+[ ] when allow touching is on, users must be able to mark the direction of each segment.
+
+[ ] create workers once and store them instead of closing and recreating them, in an attempt to lose less time at the beginning of the generation process.
+
+[ ] make a proper shared lock so snapshot() does not copy data thats being mutated by the workers, which causes a race condition
 
 ## Nice to have
 
@@ -53,9 +61,4 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] display letters and numbers next to grid
 
-[ ] use modals instead of window.alert() for errors.
-
-## Progress
-
-Done: 13
-Total: 21
+[ ] use modals instead of window.alert() for errors + better error messages

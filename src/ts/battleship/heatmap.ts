@@ -49,6 +49,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
 
+  #cores = Math.max(1, navigator.hardwareConcurrency)
+  #workers: Worker[] = []
+
   #onStartGenerating: () => void
   #onStopGenerating: () => void
   #onFinishGenerating: () => void
@@ -116,13 +119,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         sharedBuffer: this.#sharedLive.buffer,
       }
 
+      for (let t = 0; t < this.#cores; t++) this.#startWorker()
+
       // Keep generating until timeout fires
       this.generationTimeoutId = setTimeout(() => {
         this.generating = false
         this.#onFinishGenerating()
       }, this.generationSeconds * 1000)
-
-      for (let t = 0; t < navigator.hardwareConcurrency; t++) this.#startWorker()
 
       this.#onStartGenerating()
     } else {
@@ -157,11 +160,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async snapshot() {
-    Atomics.store(this.#sharedLive, LOCK, 1)
+    // Atomics.store(this.#sharedLive, LOCK, 1)
 
-    do {
-      await scheduler.yield()
-    } while (this.#sharedLive[WRITERS])
+    // do {
+    // await scheduler.yield()
+    // } while (this.#sharedLive[WRITERS])
 
     this.#shared[ATTEMPTS] = this.#sharedLive[ATTEMPTS]
     this.#shared[SUCCESS] = this.#sharedLive[SUCCESS]
@@ -174,8 +177,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
           .map((_, col) => this.#heatmapLive[row * this.cols + col])
       )
 
-    Atomics.store(this.#sharedLive, LOCK, 0)
-    Atomics.notify(this.#sharedLive, LOCK)
+    // Atomics.store(this.#sharedLive, LOCK, 0)
+    // Atomics.notify(this.#sharedLive, LOCK)
   }
 
   getHeat(row: number, col: number): number {
@@ -252,9 +255,12 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   #startWorker(): void {
+    if (this.#workers.length >= this.#cores) return
+
     const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
       type: 'module',
     })
     worker.postMessage({ ...this.jobData })
+    this.#workers.push(worker)
   }
 }
