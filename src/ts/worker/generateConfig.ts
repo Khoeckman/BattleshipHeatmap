@@ -1,41 +1,48 @@
+import { alignToCacheLine } from '../mem'
 import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
-import BattleshipHeatmap, { type GenerationJobData } from '../battleship/heatmap'
+import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
+
+let threadIndex: number
+let mainData: Int32Array
+let workerData: Int32Array
+let heatmap: Uint32Array
+
+let workerDataOffset: number
+let heatmapOffset: number
 
 let stride: number
+let tries: number
 const index = (row: number, col: number) => row * stride + col
 
-let tries: number
-
-// Shared data indices
-const JOB_ID = 0
-const ATTEMPTS = 1
-const SUCCESS = 2
-const LOCK = 3
-const WRITERS = 4
-
-self.onmessage = function (e: MessageEvent<GenerationJobData>) {
+self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   const data = e.data
-  const grid = structuredClone(data.grid)
+
+  if ('heatmapBuffer' in data && 'mainDataBuffer' in data && 'workerDataBuffer' in data) {
+    threadIndex = data.threadIndex
+    heatmap = new Uint32Array(data.heatmapBuffer)
+    mainData = new Int32Array(data.mainDataBuffer)
+    workerData = new Int32Array(data.workerDataBuffer)
+    return
+  }
+
+  workerDataOffset = alignToCacheLine(2, Int32Array) * threadIndex
+  heatmapOffset = alignToCacheLine(data.rows * data.cols, Uint32Array) * threadIndex
+
   stride = data.cols
   tries = Math.sqrt(data.rows * data.cols) * 80
 
-  const heatmap = new Uint32Array(data.heatmapBuffer)
-  const shared = new Int32Array(data.sharedBuffer)
+  const gridReference = data.grid
 
-  // Keep generating until the main thread increases the value at index JOB_ID in the SAB
-  while (shared[JOB_ID] === data.id) {
-    data.grid = structuredClone(grid)
-    generateConfig(data, heatmap, shared)
+  // Keep generating until the main thread increases the value at index __JOB_ID__ in the SAB
+  while (mainData[__JOB_ID__] === data.id) {
+    data.grid = structuredClone(gridReference)
+    generateConfig(data)
   }
-  self.close()
+  // self.close()
 }
 
-function generateConfig(
-  data: GenerationJobData,
-  heatmap: Uint32Array,
-  shared: Int32Array
-): number[][] | void {
+function generateConfig(data: JobData): number[][] | void {
   const bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
 
   const boatLengths = structuredClone(data.boatLengths)
@@ -84,7 +91,7 @@ function generateConfig(
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      if (shared[JOB_ID] === data.id) Atomics.add(shared, ATTEMPTS, 1)
+      if (mainData[__JOB_ID__] === data.id) Atomics.add(mainData, __ATTEMPTS__, 1)
       return
     }
   }
@@ -97,41 +104,37 @@ function generateConfig(
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        if (shared[JOB_ID] === data.id) Atomics.add(shared, ATTEMPTS, 1)
+        if (mainData[__JOB_ID__] === data.id) Atomics.add(mainData, __ATTEMPTS__, 1)
         return
       }
     }
   }
 
-  if (shared[JOB_ID] !== data.id) return
+  if (mainData[__JOB_ID__] !== data.id) return
 
   // Successful configuration found
 
-  // Atomics.wait(shared, LOCK, 1)
-  // Atomics.add(shared, WRITERS, 1)
+  // Atomics.wait(workerData, LOCK, 1)
+  // Atomics.add(workerData, WRITERS, 1)
 
-  // Atomics.add(shared, ATTEMPTS, 1)
-  // Atomics.add(shared, SUCCESS, 1)
-  shared[ATTEMPTS]++
-  shared[SUCCESS]++
+  // Atomics.add(workerData, elementOffset + __ATTEMPTS__, 1)
+  // Atomics.add(workerData, elementOffset + __SUCCESSES__, 1)
+  workerData[workerDataOffset + __ATTEMPTS__]++
+  workerData[workerDataOffset + __SUCCESSES__]++
 
-  // for (const boat of boatsPlaced) {
-  //   BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-  //     // Atomics.add(heatmap, index(row, col), 1)
-  //     heatmap[index(row, col)]++
-  //   })
-  // }
-  // Atomics.sub(shared, WRITERS, 1)
+  for (const boat of boatsPlaced) {
+    BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+      // Atomics.add(heatmap, elementOffset + index(row, col), 1)
+      heatmap[heatmapOffset + index(row, col)]++
+    })
+  }
+  // Atomics.sub(workerData, WRITERS, 1)
 }
 
 /**
  * Efficient preflight check if a boat can be validly placed
  */
-function canPlaceBoat(
-  data: GenerationJobData,
-  bitmap: Uint8Array,
-  boat: Boat
-): boat is PlaceableBoat {
+function canPlaceBoat(data: JobData, bitmap: Uint8Array, boat: Boat): boat is PlaceableBoat {
   let row = boat.row
   let col = boat.col
 
@@ -158,7 +161,7 @@ function canPlaceBoat(
  *
  * @returns true if the boat was placed, false if it could not be placed.
  */
-function placeBoat(data: GenerationJobData, bitmap: Uint8Array, boat: PlaceableBoat): boolean {
+function placeBoat(data: JobData, bitmap: Uint8Array, boat: PlaceableBoat): boolean {
   if (!data.allowTouching) {
     // Should fail if boat is placed next to but not on a HIT clue
     // if (true) {

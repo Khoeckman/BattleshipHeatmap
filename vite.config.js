@@ -21,5 +21,11 @@ export default defineConfig({
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
   },
+  define: {
+    __CACHE_LINE_SIZE__: 128,
+    __JOB_ID__: 0,
+    __ATTEMPTS__: 0,
+    __SUCCESSES__: 1,
+  },
   plugins: [stylelint(), eslint()],
 })

@@ -1,6 +1,14 @@
+import { alignToCacheLine } from '../mem'
 import BattleshipGrid, { type Boat } from './grid'
 
-export type GenerationJobData = {
+export type SharedData = {
+  threadIndex: number
+  mainDataBuffer: SharedArrayBuffer
+  workerDataBuffer: SharedArrayBuffer
+  heatmapBuffer: SharedArrayBuffer
+}
+
+export type JobData = {
   id: number
   rows: number
   cols: number
@@ -8,49 +16,46 @@ export type GenerationJobData = {
   boatsSunken: Boat[]
   allowTouching: boolean
   grid: number[][]
-  heatmapBuffer: SharedArrayBuffer
-  sharedBuffer: SharedArrayBuffer
 }
 
-// Shared data indices
-const JOB_ID = 0
-const ATTEMPTS = 1
-const SUCCESS = 2
-const LOCK = 3
-const WRITERS = 4
-
 export default class BattleshipHeatmap extends BattleshipGrid {
-  /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
-  public jobData: GenerationJobData | null = null
+  #threads = Math.max(1, navigator.hardwareConcurrency)
+  #workers: Worker[] = Array(this.#threads)
 
   /**
-   * Represents the heatmap grid
+   * Shared data from the workers to the main thread.
+   *
+   * 0 Job ID - If this ID does not match the ID of the worker (anymore) it means it should stop generating and close.
+   * 1 Lock - Whether the workers are allowed to start writing to the SABs
+   * 2 Writing - The amount of workers that are actively writing their results to the SABs
+   */
+  #mainDataLive = new Int32Array(this.sab(3, Int32Array))
+
+  /**
+   * Shared data from the workers to the main thread.
+   *
+   * 0 Attempts - The number of attempts to generate a valid configuration.
+   * 1 Successes - The number of valid configurations accumulated to produce the heatmap.
+   */
+  #workerDataLive = new Int32Array(this.sab(2, Int32Array))
+  #workerData: number[] = []
+
+  /**
+   * Represents the heatmap grid for each worker.
    *
    * The value in each cell represents the total number of times a boat crossed
-   * through that cell inside of a randomly found valid configuration.
+   * through that cell inside of a valid configuration.
    */
   #heatmapLive: Uint32Array<SharedArrayBuffer>
   #heatmap: number[][] = []
-
-  /**
-   * Shared data between the main thread and the workers
-   *
-   * 0 Job ID - If this ID does not match the ID of the worker (anymore) it means it should stop generating and close.
-   * 1 Attempts - The number of attempts to generate a valid configuration.
-   * 2 Accumulated - The number of valid configurations accumulated to produce the heatmap.
-   * 3 Lock - Whether the workers are allowed to start writing to the SABs
-   * 4 Writing - The amount of workers that are actively writing their results to the SABs
-   */
-  #sharedLive = new Int32Array(new SharedArrayBuffer(5 * Int32Array.BYTES_PER_ELEMENT))
-  #shared: number[] = []
 
   #generating = false
   public generationSeconds: number
   public generationTimeoutId: number = -1
   public generationStartTs: number = 0
 
-  #cores = Math.max(1, navigator.hardwareConcurrency)
-  #workers: Worker[] = []
+  /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
+  public jobData: JobData | null = null
 
   #onStartGenerating: () => void
   #onStopGenerating: () => void
@@ -69,9 +74,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super(grid.rows, grid.cols, grid.boatLengths, grid.allowTouching, grid.grid)
     this.onChange = () => (this.generating = false)
 
-    this.#heatmapLive = new Uint32Array(
-      new SharedArrayBuffer(this.rows * this.cols * Uint32Array.BYTES_PER_ELEMENT)
-    )
+    this.#heatmapLive = new Uint32Array(this.sab(this.rows * this.cols, Uint32Array))
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
     }
@@ -108,20 +111,19 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       this.resetHeatmap()
 
       this.jobData = {
-        id: Atomics.add(this.#sharedLive, JOB_ID, 1) + 1,
+        id: Atomics.load(this.#mainDataLive, __JOB_ID__),
         rows: this.rows,
         cols: this.cols,
         boatLengths: this.boatLengths,
         boatsSunken: this.boatsSunken,
         allowTouching: this.allowTouching,
         grid: this.grid,
-        heatmapBuffer: this.#heatmapLive.buffer,
-        sharedBuffer: this.#sharedLive.buffer,
       }
 
-      for (let t = 0; t < this.#cores; t++) this.#startWorker()
+      for (let threadIdx = 0; threadIdx < this.#threads; threadIdx++)
+        this.#startWorker(threadIdx).postMessage({ ...this.jobData })
 
-      // Keep generating until timeout fires
+      // Keep generating until timeout expires
       this.generationTimeoutId = setTimeout(() => {
         this.generating = false
         this.#onFinishGenerating()
@@ -133,7 +135,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
       // Stop workers
       this.jobData = null
-      Atomics.add(this.#sharedLive, JOB_ID, 1)
+      Atomics.add(this.#mainDataLive, __JOB_ID__, 1)
 
       clearTimeout(this.generationTimeoutId)
 
@@ -142,21 +144,35 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   get attempts() {
-    return this.#shared[ATTEMPTS]
+    return this.#workerData[__ATTEMPTS__]
   }
 
   set attempts(value) {
-    Atomics.store(this.#sharedLive, ATTEMPTS, value)
-    this.#shared[ATTEMPTS] = value
+    Atomics.store(this.#workerDataLive, __ATTEMPTS__, value)
+    this.#workerData[__ATTEMPTS__] = value
   }
 
   get success() {
-    return this.#shared[SUCCESS]
+    return this.#workerData[__SUCCESSES__]
   }
 
   set success(value) {
-    Atomics.store(this.#sharedLive, SUCCESS, value)
-    this.#shared[SUCCESS] = value
+    Atomics.store(this.#workerDataLive, __SUCCESSES__, value)
+    this.#workerData[__SUCCESSES__] = value
+  }
+
+  /**
+   * Creates a SharedArrayBuffer that is aligned to the CPU's cache line size to prevent false sharing.
+   *
+   * @param elements - The number of elements in the array.
+   * @param arrayBufferView - The typed array constructor to determine the size of each element.
+   * @returns A SharedArrayBuffer that is aligned to the CPU's cache line size.
+   */
+  sab(
+    elements: number,
+    arrayConstructor: { readonly BYTES_PER_ELEMENT: number }
+  ): SharedArrayBuffer {
+    return new SharedArrayBuffer(alignToCacheLine(elements, arrayConstructor) * this.#threads)
   }
 
   async snapshot() {
@@ -166,8 +182,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     // await scheduler.yield()
     // } while (this.#sharedLive[WRITERS])
 
-    this.#shared[ATTEMPTS] = this.#sharedLive[ATTEMPTS]
-    this.#shared[SUCCESS] = this.#sharedLive[SUCCESS]
+    this.#workerData[__ATTEMPTS__] = this.#workerDataLive[__ATTEMPTS__]
+    this.#workerData[__SUCCESSES__] = this.#workerDataLive[__SUCCESSES__]
 
     this.#heatmap = Array(this.rows)
       .fill(0)
@@ -232,9 +248,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   resize(rows: number, cols: number): void {
     super.resize(rows, cols)
 
-    this.#heatmapLive = new Uint32Array(
-      new SharedArrayBuffer(this.rows * this.cols * Uint32Array.BYTES_PER_ELEMENT)
-    )
+    this.#heatmapLive = new Uint32Array(this.sab(this.rows * this.cols, Uint32Array))
     this.attempts = 0
     this.success = 0
     this.jobData = null
@@ -254,13 +268,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.jobData = null
   }
 
-  #startWorker(): void {
-    if (this.#workers.length >= this.#cores) return
+  #startWorker(threadIndex: number): Worker {
+    if (this.#workers[threadIndex]) return this.#workers[threadIndex]
 
-    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
-      type: 'module',
-    })
-    worker.postMessage({ ...this.jobData })
+    const scriptURL = new URL('../worker/generateConfig.ts', import.meta.url)
+    const worker = new Worker(scriptURL, { type: 'module' })
+    const sharedData: SharedData = {
+      threadIndex,
+      mainDataBuffer: this.#mainDataLive.buffer,
+      workerDataBuffer: this.#workerDataLive.buffer,
+      heatmapBuffer: this.#heatmapLive.buffer,
+    }
+    worker.postMessage(sharedData)
+
     this.#workers.push(worker)
+    return worker
   }
 }
