@@ -3,22 +3,25 @@ import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
+// SharedData
 let threadIndex: number
 let mainData: Int32Array
 let workerData: Int32Array
 let heatmap: Uint32Array
 
+// JobData
 let workerDataOffset: number
 let heatmapOffset: number
 
 let stride: number
-let tries: number
 const index = (row: number, col: number) => row * stride + col
+
+let boatPlaceAttempts: number
 
 self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   const data = e.data
 
-  if ('heatmapBuffer' in data && 'mainDataBuffer' in data && 'workerDataBuffer' in data) {
+  if ('threadIndex' in data) {
     threadIndex = data.threadIndex
     heatmap = new Uint32Array(data.heatmapBuffer)
     mainData = new Int32Array(data.mainDataBuffer)
@@ -30,7 +33,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   heatmapOffset = alignToCacheLine(data.rows * data.cols, Uint32Array) * threadIndex
 
   stride = data.cols
-  tries = Math.sqrt(data.rows * data.cols) * 80
+  boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
 
   const gridReference = data.grid
 
@@ -59,25 +62,26 @@ function generateConfig(data: JobData): number[][] | void {
 
   for (const boatLength of boatLengths) {
     // The highest coordinates that the lowest coordinate of the boat can be at
-    const r = Math.max(0, data.cols - boatLength + 1)
-    const c = Math.max(0, data.rows - boatLength + 1)
+    const maxCol = Math.max(0, data.cols - boatLength + 1)
+    const maxRow = Math.max(0, data.rows - boatLength + 1)
 
-    // Place the boat with perfectly distributed chances
-    const placeHorCells = data.rows * r
-    const placeVerCells = data.cols * c
+    // Amount of cells that the boat can be placed in horizontally vs vertically
+    const placeHorCells = data.rows * maxCol
+    const placeVerCells = data.cols * maxRow
 
     let boatPlaced = false
 
-    for (let t = 0; t < tries; t++) {
+    for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
+      // The chances of placing a boat horizontally vs vertically should be proportional to the amount of cells it can be placed in that direction.
       const vertical = !(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
 
       // Place the boat randomly ensuring it won't exceed the grid limits
       if (vertical) {
-        row = ~~(Math.random() * c)
+        row = ~~(Math.random() * maxRow)
         col = ~~(Math.random() * data.cols)
       } else {
         row = ~~(Math.random() * data.rows)
-        col = ~~(Math.random() * r)
+        col = ~~(Math.random() * maxCol)
       }
 
       const boat = { length: boatLength, row, col, vertical }
@@ -117,14 +121,14 @@ function generateConfig(data: JobData): number[][] | void {
   // Atomics.wait(workerData, LOCK, 1)
   // Atomics.add(workerData, WRITERS, 1)
 
-  // Atomics.add(workerData, elementOffset + __ATTEMPTS__, 1)
-  // Atomics.add(workerData, elementOffset + __SUCCESSES__, 1)
+  // Atomics.add(workerData, workerDataOffset + __ATTEMPTS__, 1)
+  // Atomics.add(workerData, workerDataOffset + __SUCCESSES__, 1)
   workerData[workerDataOffset + __ATTEMPTS__]++
   workerData[workerDataOffset + __SUCCESSES__]++
 
   for (const boat of boatsPlaced) {
     BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-      // Atomics.add(heatmap, elementOffset + index(row, col), 1)
+      // Atomics.add(heatmap, heatmapOffset + index(row, col), 1)
       heatmap[heatmapOffset + index(row, col)]++
     })
   }
