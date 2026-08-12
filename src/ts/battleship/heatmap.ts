@@ -3,7 +3,7 @@ import { alignToCacheLine } from '../mem'
 import BattleshipGrid, { type Boat } from './grid'
 
 export type SharedData = {
-  threadIndex: number
+  workerIndex: number
   mainDataBuffer: SharedArrayBuffer
   workerDataBuffer: SharedArrayBuffer
   heatmapBuffer: SharedArrayBuffer
@@ -264,7 +264,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     const scriptURL = new URL('../worker/generateConfig.ts', import.meta.url)
     const worker = new Worker(scriptURL, { type: 'module' })
     const sharedData: SharedData = {
-      threadIndex: workerIndex,
+      workerIndex,
       mainDataBuffer: this.#mainDataLive.buffer,
       workerDataBuffer: this.#workerDataLive.buffer,
       heatmapBuffer: this.#heatmapLive.buffer,

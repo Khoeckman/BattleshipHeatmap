@@ -4,7 +4,7 @@ import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
 // SharedData
-let threadIndex: number
+let workerIndex: number
 let mainData: Int32Array
 let workerData: Int32Array
 let heatmap: Uint32Array
@@ -23,8 +23,8 @@ let boatPlaceAttempts: number
 self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   const data = e.data
 
-  if ('threadIndex' in data) {
-    threadIndex = data.threadIndex
+  if ('workerIndex' in data) {
+    workerIndex = data.workerIndex
     mainData = new Int32Array(data.mainDataBuffer)
     workerData = new Int32Array(data.workerDataBuffer)
     heatmap = new Uint32Array(data.heatmapBuffer)
@@ -33,8 +33,8 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
     return
   }
 
-  workerDataOffset = workerDataSegmentSize * threadIndex
-  heatmapOffset = heatmapSegmentSize * threadIndex
+  workerDataOffset = workerDataSegmentSize * workerIndex
+  heatmapOffset = heatmapSegmentSize * workerIndex
 
   stride = data.cols
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
