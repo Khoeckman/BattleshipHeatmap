@@ -160,20 +160,26 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.#workerData[ATTEMPTS] = 0
     this.#workerData[SUCCESSES] = 0
 
-    for (let workerIdx = 0; workerIdx < workerCount; workerIdx++) {
-      const workerDataOffset = this.#workerDataSegmentSize * workerIdx
-
-      this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
-      this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
-    }
-
     this.#heatmap = Array(this.rows)
       .fill(0)
-      .map((_, row) =>
-        Array(this.cols)
-          .fill(0)
-          .map((_, col) => this.#heatmapLive[row * this.cols + col])
-      )
+      .map(() => Array(this.cols).fill(0))
+
+    for (
+      let workerIndex = 0, workerDataOffset = 0, heatmapOffset = 0;
+      workerIndex < workerCount;
+      workerIndex++,
+        workerDataOffset += this.#workerDataSegmentSize,
+        heatmapOffset += this.#heatmapSegmentSize
+    ) {
+      this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
+      this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
+
+      for (let row = 0; row < this.rows; row++) {
+        for (let col = 0; col < this.cols; col++) {
+          this.#heatmap[row][col] += this.#heatmapLive[heatmapOffset + row * this.cols + col]
+        }
+      }
+    }
 
     // Atomics.store(this.#sharedLive, LOCK, 0)
     // Atomics.notify(this.#sharedLive, LOCK)
