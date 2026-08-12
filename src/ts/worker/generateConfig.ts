@@ -1,4 +1,3 @@
-import { alignToCacheLine } from '../mem'
 import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
 import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
@@ -9,6 +8,8 @@ let threadIndex: number
 let mainData: Int32Array
 let workerData: Int32Array
 let heatmap: Uint32Array
+let workerDataSegmentSize: number
+let heatmapSegmentSize: number
 
 // JobData
 let workerDataOffset: number
@@ -24,14 +25,16 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 
   if ('threadIndex' in data) {
     threadIndex = data.threadIndex
-    heatmap = new Uint32Array(data.heatmapBuffer)
     mainData = new Int32Array(data.mainDataBuffer)
     workerData = new Int32Array(data.workerDataBuffer)
+    heatmap = new Uint32Array(data.heatmapBuffer)
+    workerDataSegmentSize = data.workerDataSegmentSize
+    heatmapSegmentSize = data.heatmapSegmentSize
     return
   }
 
-  workerDataOffset = alignToCacheLine(2, Int32Array) * threadIndex
-  heatmapOffset = alignToCacheLine(data.rows * data.cols, Uint32Array) * threadIndex
+  workerDataOffset = workerDataSegmentSize * threadIndex
+  heatmapOffset = heatmapSegmentSize * threadIndex
 
   stride = data.cols
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80

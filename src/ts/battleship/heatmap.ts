@@ -7,6 +7,8 @@ export type SharedData = {
   mainDataBuffer: SharedArrayBuffer
   workerDataBuffer: SharedArrayBuffer
   heatmapBuffer: SharedArrayBuffer
+  workerDataSegmentSize: number
+  heatmapSegmentSize: number
 }
 
 export type JobData = {
@@ -39,6 +41,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * 1 Successes - The number of valid configurations accumulated to produce the heatmap.
    */
   #workerDataLive = new Int32Array(this.sab(2, Int32Array))
+  #workerDataSegmentSize = alignToCacheLine(2)
   #workerData: number[] = []
 
   /**
@@ -48,6 +51,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * through that cell inside of a valid configuration.
    */
   #heatmapLive: Uint32Array<SharedArrayBuffer>
+  #heatmapSegmentSize: number
   #heatmap: number[][] = []
 
   #generating = false
@@ -76,6 +80,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.onChange = () => (this.generating = false)
 
     this.#heatmapLive = new Uint32Array(this.sab(this.rows * this.cols, Uint32Array))
+    this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
+
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
     }
@@ -183,8 +189,18 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     // await scheduler.yield()
     // } while (this.#sharedLive[WRITERS])
 
-    this.#workerData[__ATTEMPTS__] = this.#workerDataLive[__ATTEMPTS__]
-    this.#workerData[__SUCCESSES__] = this.#workerDataLive[__SUCCESSES__]
+    const workerCount = this.#workers.length
+
+    // Accumulators
+    this.#workerData[ATTEMPTS] = 0
+    this.#workerData[SUCCESSES] = 0
+
+    for (let workerIdx = 0; workerIdx < workerCount; workerIdx++) {
+      const workerDataOffset = this.#workerDataSegmentSize * workerIdx
+
+      this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
+      this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
+    }
 
     this.#heatmap = Array(this.rows)
       .fill(0)
@@ -250,6 +266,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super.resize(rows, cols)
 
     this.#heatmapLive = new Uint32Array(this.sab(this.rows * this.cols, Uint32Array))
+    this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
+
     this.attempts = 0
     this.success = 0
     this.jobData = null
@@ -279,6 +297,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       mainDataBuffer: this.#mainDataLive.buffer,
       workerDataBuffer: this.#workerDataLive.buffer,
       heatmapBuffer: this.#heatmapLive.buffer,
+      workerDataSegmentSize: this.#workerDataSegmentSize,
+      heatmapSegmentSize: this.#heatmapSegmentSize,
     }
     worker.postMessage(sharedData)
 
