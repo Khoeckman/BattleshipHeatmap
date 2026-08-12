@@ -49,7 +49,7 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] when allow touching is on, users must be able to mark the direction of each segment.
 
-[ ] create workers once and store them instead of closing and recreating them, in an attempt to lose less time at the beginning of the generation process.
+[V] create workers once and store them instead of closing and recreating them, in an attempt to lose less time at the beginning of the generation process.
 
 [ ] make a proper shared lock so snapshot() does not copy data thats being mutated by the workers, which causes a race condition
 

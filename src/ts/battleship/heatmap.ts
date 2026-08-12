@@ -111,43 +111,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   set generating(value: boolean) {
     if (this.#generating === value) return
-
-    if (value) {
-      this.#generating = true
-      this.generationStartTs = performance.now()
-      this.resetHeatmap()
-
-      this.jobData = {
-        id: Atomics.load(this.#mainDataLive, +JOB_ID),
-        rows: this.rows,
-        cols: this.cols,
-        boatLengths: this.boatLengths,
-        boatsSunken: this.boatsSunken,
-        allowTouching: this.allowTouching,
-        grid: this.grid,
-      }
-
-      for (let threadIdx = 0; threadIdx < this.#threads; threadIdx++)
-        this.#startWorker(threadIdx).postMessage({ ...this.jobData })
-
-      // Keep generating until timeout expires
-      this.generationTimeoutId = setTimeout(() => {
-        this.generating = false
-        this.#onFinishGenerating()
-      }, this.generationSeconds * 1000)
-
-      this.#onStartGenerating()
-    } else {
-      this.#generating = false
-
-      // Stop workers
-      this.jobData = null
-      Atomics.add(this.#mainDataLive, +JOB_ID, 1)
-
-      clearTimeout(this.generationTimeoutId)
-
-      this.#onStopGenerating()
-    }
+    if (value) this.#startGenerating()
+    else this.#stopGenerating()
   }
 
   get attempts() {
@@ -287,13 +252,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.jobData = null
   }
 
-  #startWorker(threadIndex: number): Worker {
-    if (this.#workers[threadIndex]) return this.#workers[threadIndex]
+  #createWorker(workerIndex: number): Worker {
+    if (this.#workers[workerIndex]) return this.#workers[workerIndex]
 
     const scriptURL = new URL('../worker/generateConfig.ts', import.meta.url)
     const worker = new Worker(scriptURL, { type: 'module' })
     const sharedData: SharedData = {
-      threadIndex,
+      threadIndex: workerIndex,
       mainDataBuffer: this.#mainDataLive.buffer,
       workerDataBuffer: this.#workerDataLive.buffer,
       heatmapBuffer: this.#heatmapLive.buffer,
@@ -304,5 +269,45 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
     this.#workers.push(worker)
     return worker
+  }
+
+  #startGenerating() {
+    this.#generating = true
+    this.generationStartTs = performance.now()
+    this.resetHeatmap()
+
+    this.jobData = {
+      id: Atomics.load(this.#mainDataLive, +JOB_ID),
+      rows: this.rows,
+      cols: this.cols,
+      boatLengths: this.boatLengths,
+      boatsSunken: this.boatsSunken,
+      allowTouching: this.allowTouching,
+      grid: this.grid,
+    }
+
+    for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++)
+      this.#createWorker(workerIndex).postMessage({ ...this.jobData })
+
+    // Keep generating until timeout expires
+    this.generationTimeoutId = setTimeout(() => {
+      this.generating = false
+      this.#onFinishGenerating()
+    }, this.generationSeconds * 1000)
+
+    this.#onStartGenerating()
+  }
+
+  #stopGenerating() {
+    this.#generating = false
+
+    this.jobData = null
+
+    // Stop workers
+    Atomics.add(this.#mainDataLive, +JOB_ID, 1)
+
+    clearTimeout(this.generationTimeoutId)
+
+    this.#onStopGenerating()
   }
 }
