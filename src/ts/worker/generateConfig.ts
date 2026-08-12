@@ -1,4 +1,5 @@
 import { alignToCacheLine } from '../mem'
+import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
 import { type Boat, type PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
@@ -38,7 +39,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   const gridReference = data.grid
 
   // Keep generating until the main thread increases the value at index __JOB_ID__ in the SAB
-  while (mainData[__JOB_ID__] === data.id) {
+  while (mainData[JOB_ID] === data.id) {
     data.grid = structuredClone(gridReference)
     generateConfig(data)
   }
@@ -95,7 +96,7 @@ function generateConfig(data: JobData): number[][] | void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      if (mainData[__JOB_ID__] === data.id) Atomics.add(mainData, __ATTEMPTS__, 1)
+      if (mainData[JOB_ID] === data.id) Atomics.add(mainData, +ATTEMPTS, 1)
       return
     }
   }
@@ -108,28 +109,28 @@ function generateConfig(data: JobData): number[][] | void {
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        if (mainData[__JOB_ID__] === data.id) Atomics.add(mainData, __ATTEMPTS__, 1)
+        if (mainData[JOB_ID] === data.id) Atomics.add(mainData, +ATTEMPTS, 1)
         return
       }
     }
   }
 
-  if (mainData[__JOB_ID__] !== data.id) return
+  if (mainData[JOB_ID] !== data.id) return
 
   // Successful configuration found
 
   // Atomics.wait(workerData, LOCK, 1)
   // Atomics.add(workerData, WRITERS, 1)
 
-  // Atomics.add(workerData, workerDataOffset + __ATTEMPTS__, 1)
-  // Atomics.add(workerData, workerDataOffset + __SUCCESSES__, 1)
-  workerData[workerDataOffset + __ATTEMPTS__]++
-  workerData[workerDataOffset + __SUCCESSES__]++
+  Atomics.add(workerData, workerDataOffset + ATTEMPTS, 1)
+  Atomics.add(workerData, workerDataOffset + SUCCESSES, 1)
+  // workerData[workerDataOffset + +ATTEMPTS]++
+  // workerData[workerDataOffset + +SUCCESSES]++
 
   for (const boat of boatsPlaced) {
     BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-      // Atomics.add(heatmap, heatmapOffset + index(row, col), 1)
-      heatmap[heatmapOffset + index(row, col)]++
+      Atomics.add(heatmap, heatmapOffset + index(row, col), 1)
+      // heatmap[heatmapOffset + index(row, col)]++
     })
   }
   // Atomics.sub(workerData, WRITERS, 1)

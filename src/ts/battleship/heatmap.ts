@@ -1,3 +1,4 @@
+import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
 import { alignToCacheLine } from '../mem'
 import BattleshipGrid, { type Boat } from './grid'
 
@@ -111,7 +112,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       this.resetHeatmap()
 
       this.jobData = {
-        id: Atomics.load(this.#mainDataLive, __JOB_ID__),
+        id: Atomics.load(this.#mainDataLive, +JOB_ID),
         rows: this.rows,
         cols: this.cols,
         boatLengths: this.boatLengths,
@@ -135,7 +136,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
       // Stop workers
       this.jobData = null
-      Atomics.add(this.#mainDataLive, __JOB_ID__, 1)
+      Atomics.add(this.#mainDataLive, +JOB_ID, 1)
 
       clearTimeout(this.generationTimeoutId)
 
@@ -144,21 +145,21 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   get attempts() {
-    return this.#workerData[__ATTEMPTS__]
+    return this.#workerData[ATTEMPTS]
   }
 
   set attempts(value) {
-    Atomics.store(this.#workerDataLive, __ATTEMPTS__, value)
-    this.#workerData[__ATTEMPTS__] = value
+    Atomics.store(this.#workerDataLive, +ATTEMPTS, value)
+    this.#workerData[ATTEMPTS] = value
   }
 
   get success() {
-    return this.#workerData[__SUCCESSES__]
+    return this.#workerData[SUCCESSES]
   }
 
   set success(value) {
-    Atomics.store(this.#workerDataLive, __SUCCESSES__, value)
-    this.#workerData[__SUCCESSES__] = value
+    Atomics.store(this.#workerDataLive, +SUCCESSES, value)
+    this.#workerData[SUCCESSES] = value
   }
 
   /**

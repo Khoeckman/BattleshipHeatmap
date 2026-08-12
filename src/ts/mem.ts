@@ -1,3 +1,5 @@
+import { CACHE_LINE_SIZE } from './constants'
+
 /**
  * Rounds a byte size up to the nearest cache-line boundary.
  *
@@ -7,8 +9,8 @@
  */
 export const alignToCacheLine = (
   elements: number,
-  arrayConstructor: { readonly BYTES_PER_ELEMENT: number }
+  arrayConstructor?: { readonly BYTES_PER_ELEMENT: number }
 ) =>
-  Math.ceil(elements / __CACHE_LINE_SIZE__) *
-  __CACHE_LINE_SIZE__ *
-  arrayConstructor.BYTES_PER_ELEMENT
+  Math.ceil(elements / CACHE_LINE_SIZE) *
+  CACHE_LINE_SIZE *
+  (arrayConstructor?.BYTES_PER_ELEMENT || 1)
