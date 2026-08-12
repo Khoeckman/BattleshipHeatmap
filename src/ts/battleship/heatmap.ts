@@ -1,9 +1,10 @@
 import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
-import { alignToCacheLine } from '../mem'
+import { alignToCacheLine, SharedExclusiveLock } from '../memory'
 import BattleshipGrid, { type Boat } from './grid'
 
 export type SharedData = {
   workerIndex: number
+  lock: SharedExclusiveLock
   mainDataBuffer: SharedArrayBuffer
   workerDataBuffer: SharedArrayBuffer
   heatmapBuffer: SharedArrayBuffer
@@ -24,15 +25,14 @@ export type JobData = {
 export default class BattleshipHeatmap extends BattleshipGrid {
   #threads = Math.max(1, navigator.hardwareConcurrency)
   #workers: Worker[] = Array(this.#threads)
+  #lock = new SharedExclusiveLock()
 
   /**
    * Shared data from the workers to the main thread.
    *
    * 0 Job ID - If this ID does not match the ID of the worker (anymore) it means it should stop generating and close.
-   * 1 Lock - Whether the workers are allowed to start writing to the SABs
-   * 2 Writing - The amount of workers that are actively writing their results to the SABs
    */
-  #mainDataLive = new Int32Array(this.sab(3, Int32Array))
+  #mainDataLive = new Int32Array(this.sab(1, Int32Array))
 
   /**
    * Shared data from the workers to the main thread.
@@ -140,19 +140,12 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * @param arrayBufferView - The typed array constructor to determine the size of each element.
    * @returns A SharedArrayBuffer that is aligned to the CPU's cache line size.
    */
-  sab(
-    elements: number,
-    arrayConstructor: { readonly BYTES_PER_ELEMENT: number }
-  ): SharedArrayBuffer {
+  sab(elements: number, arrayConstructor: { readonly BYTES_PER_ELEMENT: number }): SharedArrayBuffer {
     return new SharedArrayBuffer(alignToCacheLine(elements, arrayConstructor) * this.#threads)
   }
 
   async snapshot() {
-    // Atomics.store(this.#sharedLive, LOCK, 1)
-
-    // do {
-    // await scheduler.yield()
-    // } while (this.#sharedLive[WRITERS])
+    await this.#lock.lockExclusive()
 
     // Accumulators
     this.#workerData[ATTEMPTS] = 0
@@ -165,10 +158,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     for (
       let workerIndex = 0, workerDataOffset = 0, heatmapOffset = 0;
       workerIndex < this.#workers.length;
-      workerIndex++,
-        workerDataOffset += this.#workerDataSegmentSize,
-        heatmapOffset += this.#heatmapSegmentSize
+      workerIndex++, workerDataOffset += this.#workerDataSegmentSize, heatmapOffset += this.#heatmapSegmentSize
     ) {
+      console.log(this.#workers.length)
       this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
       this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
 
@@ -179,8 +171,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       }
     }
 
-    // Atomics.store(this.#sharedLive, LOCK, 0)
-    // Atomics.notify(this.#sharedLive, LOCK)
+    this.#lock.unlockExclusive()
   }
 
   getHeat(row: number, col: number): number {
@@ -256,32 +247,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.jobData = null
   }
 
-  #createWorker(workerIndex: number): Worker {
-    if (this.#workers[workerIndex]) return this.#workers[workerIndex]
+  async #startGenerating() {
+    await this.#lock.lockExclusive()
 
-    const scriptURL = new URL('../worker/generateConfig.ts', import.meta.url)
-    const worker = new Worker(scriptURL, { type: 'module' })
-    const sharedData: SharedData = {
-      workerIndex,
-      mainDataBuffer: this.#mainDataLive.buffer,
-      workerDataBuffer: this.#workerDataLive.buffer,
-      heatmapBuffer: this.#heatmapLive.buffer,
-      workerDataSegmentSize: this.#workerDataSegmentSize,
-      heatmapSegmentSize: this.#heatmapSegmentSize,
-    }
-    worker.postMessage(sharedData)
-
-    this.#workers.push(worker)
-    return worker
-  }
-
-  #startGenerating() {
     this.#generating = true
     this.generationStartTs = performance.now()
     this.resetHeatmap()
 
     this.jobData = {
-      id: Atomics.load(this.#mainDataLive, JOB_ID),
+      id: this.#mainDataLive[JOB_ID],
       rows: this.rows,
       cols: this.cols,
       boatLengths: this.boatLengths,
@@ -289,6 +263,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       allowTouching: this.allowTouching,
       grid: this.grid,
     }
+
+    this.#lock.unlockExclusive()
 
     for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++)
       this.#createWorker(workerIndex).postMessage({ ...this.jobData })
@@ -304,7 +280,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   #stopGenerating() {
     this.#generating = false
-
     this.jobData = null
 
     // Stop workers
@@ -313,5 +288,25 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     clearTimeout(this.generationTimeoutId)
 
     this.#onStopGenerating()
+  }
+
+  #createWorker(workerIndex: number): Worker {
+    if (this.#workers[workerIndex]) return this.#workers[workerIndex]
+
+    const scriptURL = new URL('../worker/generateConfig.ts', import.meta.url)
+    const worker = new Worker(scriptURL, { type: 'module' })
+    const sharedData: SharedData = {
+      workerIndex,
+      lock: this.#lock,
+      mainDataBuffer: this.#mainDataLive.buffer,
+      workerDataBuffer: this.#workerDataLive.buffer,
+      heatmapBuffer: this.#heatmapLive.buffer,
+      workerDataSegmentSize: this.#workerDataSegmentSize,
+      heatmapSegmentSize: this.#heatmapSegmentSize,
+    }
+    worker.postMessage(sharedData)
+
+    this.#workers.push(worker)
+    return worker
   }
 }

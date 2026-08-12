@@ -1,10 +1,12 @@
 import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
-import { type Boat, type PlaceableBoat } from '../battleship/grid'
+import { SharedExclusiveLock } from '../memory'
+import type { Boat, PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
 // SharedData
 let workerIndex: number
+let lock: SharedExclusiveLock
 let mainData: Int32Array
 let workerData: Int32Array
 let heatmap: Uint32Array
@@ -25,6 +27,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 
   if ('workerIndex' in data) {
     workerIndex = data.workerIndex
+    lock = SharedExclusiveLock.connect(data.lock)
     mainData = new Int32Array(data.mainDataBuffer)
     workerData = new Int32Array(data.workerDataBuffer)
     heatmap = new Uint32Array(data.heatmapBuffer)
@@ -42,7 +45,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   const gridReference = data.grid
 
   // Keep generating until the main thread increases the value at index JOB_ID in the SAB
-  while (mainData[JOB_ID] === data.id) {
+  while (Atomics.load(mainData, JOB_ID) === data.id) {
     data.grid = structuredClone(gridReference)
     generateConfig(data)
   }
@@ -98,7 +101,9 @@ function generateConfig(data: JobData): number[][] | void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      if (mainData[JOB_ID] === data.id) Atomics.add(mainData, ATTEMPTS, 1)
+      lock.lockShared()
+      if (Atomics.load(mainData, JOB_ID) === data.id) mainData[workerDataOffset + ATTEMPTS]++
+      lock.unlockShared()
       return
     }
   }
@@ -111,31 +116,30 @@ function generateConfig(data: JobData): number[][] | void {
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        if (mainData[JOB_ID] === data.id) Atomics.add(mainData, ATTEMPTS, 1)
+        lock.lockShared()
+        if (Atomics.load(mainData, JOB_ID) === data.id) mainData[workerDataOffset + ATTEMPTS]++
+        lock.unlockShared()
         return
       }
     }
   }
 
-  if (mainData[JOB_ID] !== data.id) return
-
   // Successful configuration found
 
-  // Atomics.wait(workerData, LOCK, 1)
-  // Atomics.add(workerData, WRITERS, 1)
+  lock.lockShared()
 
-  Atomics.add(workerData, workerDataOffset + ATTEMPTS, 1)
-  Atomics.add(workerData, workerDataOffset + SUCCESSES, 1)
-  // workerData[workerDataOffset + ATTEMPTS]++
-  // workerData[workerDataOffset + SUCCESSES]++
+  if (Atomics.load(mainData, JOB_ID) === data.id) {
+    workerData[workerDataOffset + ATTEMPTS]++
+    workerData[workerDataOffset + SUCCESSES]++
 
-  for (const boat of boatsPlaced) {
-    BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-      Atomics.add(heatmap, heatmapOffset + index(row, col), 1)
-      // heatmap[heatmapOffset + index(row, col)]++
-    })
+    for (const boat of boatsPlaced) {
+      BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+        heatmap[heatmapOffset + index(row, col)]++
+      })
+    }
   }
-  // Atomics.sub(workerData, WRITERS, 1)
+
+  lock.unlockShared()
 }
 
 /**
