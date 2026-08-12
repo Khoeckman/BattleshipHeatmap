@@ -120,7 +120,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set attempts(value) {
-    Atomics.store(this.#workerDataLive, +ATTEMPTS, value)
+    Atomics.store(this.#workerDataLive, ATTEMPTS, value)
     this.#workerData[ATTEMPTS] = value
   }
 
@@ -129,7 +129,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set success(value) {
-    Atomics.store(this.#workerDataLive, +SUCCESSES, value)
+    Atomics.store(this.#workerDataLive, SUCCESSES, value)
     this.#workerData[SUCCESSES] = value
   }
 
@@ -154,8 +154,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     // await scheduler.yield()
     // } while (this.#sharedLive[WRITERS])
 
-    const workerCount = this.#workers.length
-
     // Accumulators
     this.#workerData[ATTEMPTS] = 0
     this.#workerData[SUCCESSES] = 0
@@ -166,7 +164,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
     for (
       let workerIndex = 0, workerDataOffset = 0, heatmapOffset = 0;
-      workerIndex < workerCount;
+      workerIndex < this.#workers.length;
       workerIndex++,
         workerDataOffset += this.#workerDataSegmentSize,
         heatmapOffset += this.#heatmapSegmentSize
@@ -283,7 +281,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.resetHeatmap()
 
     this.jobData = {
-      id: Atomics.load(this.#mainDataLive, +JOB_ID),
+      id: Atomics.load(this.#mainDataLive, JOB_ID),
       rows: this.rows,
       cols: this.cols,
       boatLengths: this.boatLengths,
@@ -310,7 +308,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.jobData = null
 
     // Stop workers
-    Atomics.add(this.#mainDataLive, +JOB_ID, 1)
+    Atomics.add(this.#mainDataLive, JOB_ID, 1)
 
     clearTimeout(this.generationTimeoutId)
 

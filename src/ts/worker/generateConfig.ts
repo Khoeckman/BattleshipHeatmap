@@ -41,12 +41,11 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 
   const gridReference = data.grid
 
-  // Keep generating until the main thread increases the value at index __JOB_ID__ in the SAB
+  // Keep generating until the main thread increases the value at index JOB_ID in the SAB
   while (mainData[JOB_ID] === data.id) {
     data.grid = structuredClone(gridReference)
     generateConfig(data)
   }
-  // self.close()
 }
 
 function generateConfig(data: JobData): number[][] | void {
@@ -99,7 +98,7 @@ function generateConfig(data: JobData): number[][] | void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      if (mainData[JOB_ID] === data.id) Atomics.add(mainData, +ATTEMPTS, 1)
+      if (mainData[JOB_ID] === data.id) Atomics.add(mainData, ATTEMPTS, 1)
       return
     }
   }
@@ -112,7 +111,7 @@ function generateConfig(data: JobData): number[][] | void {
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        if (mainData[JOB_ID] === data.id) Atomics.add(mainData, +ATTEMPTS, 1)
+        if (mainData[JOB_ID] === data.id) Atomics.add(mainData, ATTEMPTS, 1)
         return
       }
     }
@@ -127,8 +126,8 @@ function generateConfig(data: JobData): number[][] | void {
 
   Atomics.add(workerData, workerDataOffset + ATTEMPTS, 1)
   Atomics.add(workerData, workerDataOffset + SUCCESSES, 1)
-  // workerData[workerDataOffset + +ATTEMPTS]++
-  // workerData[workerDataOffset + +SUCCESSES]++
+  // workerData[workerDataOffset + ATTEMPTS]++
+  // workerData[workerDataOffset + SUCCESSES]++
 
   for (const boat of boatsPlaced) {
     BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
