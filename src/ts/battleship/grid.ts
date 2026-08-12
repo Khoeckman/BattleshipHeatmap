@@ -46,13 +46,7 @@ export default class BattleshipGrid {
 
   #onChange: (() => void) | null = null
 
-  constructor(
-    rows: number,
-    cols: number,
-    boatLengths: number[],
-    allowTouching: boolean,
-    grid: number[][] = []
-  ) {
+  constructor(rows: number, cols: number, boatLengths: number[], allowTouching: boolean, grid: number[][] = []) {
     this.rows = rows
     this.cols = cols
     this.boatLengths = boatLengths
@@ -124,9 +118,7 @@ export default class BattleshipGrid {
   set grid(value: number[][]) {
     if (
       !Array.isArray(value) ||
-      !value.every((row) =>
-        row.every((cell) => cell === 0 || cell === 1 || cell === 2 || cell === 4)
-      )
+      !value.every((row) => row.every((cell) => cell === 0 || cell === 1 || cell === 2 || cell === 4))
     ) {
       throw new TypeError('grid must be a two-dimensional array with values: 0, 1, 2 or 4')
     }
@@ -236,11 +228,7 @@ export default class BattleshipGrid {
         const valueAbove = row === 0 ? NaN : this.grid[row - 1][col]
         const valueBelow = row === this.rows - 1 ? NaN : this.grid[row + 1][col]
 
-        if (
-          value === BattleshipGrid.SUNK &&
-          valueAbove !== BattleshipGrid.SUNK &&
-          valueBelow !== BattleshipGrid.SUNK
-        ) {
+        if (value === BattleshipGrid.SUNK && valueAbove !== BattleshipGrid.SUNK && valueBelow !== BattleshipGrid.SUNK) {
           if (!boat) boat = { length: 1, row, col, vertical: false }
           else boat.length++
 

@@ -86,13 +86,7 @@ export default class BattleshipIO {
 
     // Load settings into data structure
     const settings = this.settingsStore.value
-    const grid = new BattleshipGrid(
-      settings.rows,
-      settings.cols,
-      settings.boats,
-      settings.allowTouching,
-      settings.grid
-    )
+    const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching, settings.grid)
 
     const onStartGenerating = () => this.updateGenerateButton()
     const onStopGenerating = () => {
@@ -124,8 +118,7 @@ export default class BattleshipIO {
     for (let boatLength of this.heatmap.boatLengths) {
       const boatEl = document.createElement('li')
 
-      if (boatLength >= 2 && boatLength <= 5)
-        boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
+      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
 
       for (let segment = 0; segment < boatLength; segment++) {
         const segmentEl = document.createElement('div')
@@ -154,8 +147,7 @@ export default class BattleshipIO {
       }
       boatEl.classList.value = 'sunk'
 
-      if (boatLength >= 2 && boatLength <= 5)
-        boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
+      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
 
       boatsSunkenSizes.splice(
         boatsSunkenSizes.findIndex((b) => b === boatLength),
@@ -228,18 +220,14 @@ export default class BattleshipIO {
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
     // Slowly rise from 98% to 100% the more successful configurations have been accumulated
-    const hotspotMargin =
-      0.98 + 0.02 * (1 - Math.min(1, 1 / (this.heatmap.success / 20_000)) ** 0.3)
+    const hotspotMargin = 0.98 + 0.02 * (1 - Math.min(1, 1 / (this.heatmap.success / 20_000)) ** 0.3)
     const hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
     minHeat *= 0.9
     maxHeat *= 1.1
 
-    const checkHotspot = (
-      hotspots: { row: number; col: number }[],
-      row: number,
-      col: number
-    ): boolean => hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
+    const checkHotspot = (hotspots: { row: number; col: number }[], row: number, col: number): boolean =>
+      hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
 
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
@@ -444,10 +432,7 @@ export default class BattleshipIO {
   }
 
   #handleKeyDown(e: KeyboardEvent): void {
-    if (
-      document.activeElement instanceof HTMLElement &&
-      document.activeElement.matches('input, textarea, select')
-    )
+    if (document.activeElement instanceof HTMLElement && document.activeElement.matches('input, textarea, select'))
       return
 
     if (e.ctrlKey || e.altKey || e.shiftKey) return
