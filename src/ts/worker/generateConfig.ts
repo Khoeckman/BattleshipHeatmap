@@ -4,6 +4,8 @@ import type { Boat, PlaceableBoat } from '../battleship/grid'
 import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
+type Grid = NonNullable<JobData['grid']>
+
 // SharedData
 let workerIndex: number
 let lock: SharedExclusiveLock
@@ -14,6 +16,7 @@ let workerDataSegmentSize: number
 let heatmapSegmentSize: number
 
 // JobData
+let data: JobData
 let workerDataOffset: number
 let heatmapOffset: number
 
@@ -22,19 +25,31 @@ const index = (row: number, col: number) => row * stride + col
 
 let boatPlaceAttempts: number
 
-self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
-  const data = e.data
+const onresult = (callback: () => void) => {
+  lock.lockShared()
 
-  if ('workerIndex' in data) {
-    workerIndex = data.workerIndex
-    lock = SharedExclusiveLock.connect(data.lock)
-    mainData = new Int32Array(data.mainDataBuffer)
-    workerData = new Int32Array(data.workerDataBuffer)
-    heatmap = new Uint32Array(data.heatmapBuffer)
-    workerDataSegmentSize = data.workerDataSegmentSize
-    heatmapSegmentSize = data.heatmapSegmentSize
+  try {
+    if (Atomics.load(mainData, JOB_ID) === data.id) return
+    callback()
+  } finally {
+    lock.unlockShared()
+  }
+}
+
+self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
+  if ('workerIndex' in e.data) {
+    workerIndex = e.data.workerIndex
+    lock = SharedExclusiveLock.connect(e.data.lock)
+    mainData = new Int32Array(e.data.mainDataBuffer)
+    workerData = new Int32Array(e.data.workerDataBuffer)
+    heatmap = new Uint32Array(e.data.heatmapBuffer)
+    workerDataSegmentSize = e.data.workerDataSegmentSize
+    heatmapSegmentSize = e.data.heatmapSegmentSize
     return
   }
+
+  data = e.data
+  if (!data.grid) return
 
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
@@ -42,16 +57,13 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   stride = data.cols
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
 
-  const gridReference = data.grid
-
-  // Keep generating until the main thread increases the value at index JOB_ID in the SAB
+  // Keep generating until the main thread increases JOB_ID
   while (Atomics.load(mainData, JOB_ID) === data.id) {
-    data.grid = structuredClone(gridReference)
-    generateConfig(data)
+    generateConfig(structuredClone(data.grid))
   }
 }
 
-function generateConfig(data: JobData): number[][] | void {
+function generateConfig(grid: Grid): void {
   const bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
 
   const boatLengths = structuredClone(data.boatLengths)
@@ -92,7 +104,7 @@ function generateConfig(data: JobData): number[][] | void {
 
       const boat = { length: boatLength, row, col, vertical }
 
-      if (canPlaceBoat(data, bitmap, boat) && placeBoat(data, bitmap, boat)) {
+      if (canPlaceBoat(grid, bitmap, boat) && placeBoat(grid, bitmap, boat)) {
         boatPlaced = true
         boatsPlaced.push(boat)
         break
@@ -101,24 +113,26 @@ function generateConfig(data: JobData): number[][] | void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      lock.lockShared()
-      if (Atomics.load(mainData, JOB_ID) === data.id) mainData[workerDataOffset + ATTEMPTS]++
-      lock.unlockShared()
+      onresult(() => {
+        mainData[workerDataOffset + ATTEMPTS]++
+      })
       return
     }
   }
 
   // Check if all hit and sunk clues have a boat placed on them
+  let i = 0
+
   for (let row = 0; row < data.rows; row++) {
-    for (let col = 0; col < data.cols; col++) {
-      const boatExpected = data.grid[row][col] & 3 // SUNK || HIT
-      const boat = bitmap[index(row, col)]
+    for (let col = 0; col < data.cols; col++, i++) {
+      const boatExpected = grid[row][col] & 3 // SUNK || HIT
+      const boat = bitmap[i]
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        lock.lockShared()
-        if (Atomics.load(mainData, JOB_ID) === data.id) mainData[workerDataOffset + ATTEMPTS]++
-        lock.unlockShared()
+        onresult(() => {
+          mainData[workerDataOffset + ATTEMPTS]++
+        })
         return
       }
     }
@@ -126,9 +140,7 @@ function generateConfig(data: JobData): number[][] | void {
 
   // Successful configuration found
 
-  lock.lockShared()
-
-  if (Atomics.load(mainData, JOB_ID) === data.id) {
+  onresult(() => {
     workerData[workerDataOffset + ATTEMPTS]++
     workerData[workerDataOffset + SUCCESSES]++
 
@@ -137,15 +149,13 @@ function generateConfig(data: JobData): number[][] | void {
         heatmap[heatmapOffset + index(row, col)]++
       })
     }
-  }
-
-  lock.unlockShared()
+  })
 }
 
 /**
  * Efficient preflight check if a boat can be validly placed
  */
-function canPlaceBoat(data: JobData, bitmap: Uint8Array, boat: Boat): boat is PlaceableBoat {
+function canPlaceBoat(grid: Grid, bitmap: Uint8Array, boat: Boat): boat is PlaceableBoat {
   let row = boat.row
   let col = boat.col
 
@@ -160,7 +170,7 @@ function canPlaceBoat(data: JobData, bitmap: Uint8Array, boat: Boat): boat is Pl
 
   // Disallow placing the boat on another boat or in water
   for (let segment = 0; segment < boat.length; segment++) {
-    if (bitmap[index(row, col)] || data.grid[row][col] === BattleshipHeatmap.MISS) return false
+    if (bitmap[index(row, col)] || grid[row][col] === BattleshipHeatmap.MISS) return false
     row += dr
     col += dc
   }
@@ -172,7 +182,7 @@ function canPlaceBoat(data: JobData, bitmap: Uint8Array, boat: Boat): boat is Pl
  *
  * @returns true if the boat was placed, false if it could not be placed.
  */
-function placeBoat(data: JobData, bitmap: Uint8Array, boat: PlaceableBoat): boolean {
+function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean {
   if (!data.allowTouching) {
     // Should fail if boat is placed next to but not on a HIT clue
     // if (true) {
@@ -200,15 +210,15 @@ function placeBoat(data: JobData, bitmap: Uint8Array, boat: PlaceableBoat): bool
         if (isBoatSegment) continue
 
         // SUNK || HIT
-        if (data.grid[r][c] & 3) return false
-        data.grid[r][c] = BattleshipHeatmap.MISS
+        if (grid[r][c] & 3) return false
+        grid[r][c] = BattleshipHeatmap.MISS
       }
     }
   }
 
   BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
     bitmap[index(row, col)] = 1
-    data.grid[row][col] = BattleshipHeatmap.SUNK
+    grid[row][col] = BattleshipHeatmap.SUNK
   })
   return true
 }
