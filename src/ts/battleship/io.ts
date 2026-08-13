@@ -267,7 +267,7 @@ export default class BattleshipIO {
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
 
-      this.renderGenerationInfo()
+      this.renderGenerationInfo(false)
     }
 
     this.heat.hotspots = hotspots
@@ -278,7 +278,6 @@ export default class BattleshipIO {
   }
 
   async scheduleRenderHeatmap(): Promise<void> {
-    await this.heatmap.snapshot()
     this.renderGenerationInfo()
 
     if (this.heatmap.generating) {
@@ -306,7 +305,9 @@ export default class BattleshipIO {
       })
   }
 
-  renderGenerationInfo(): void {
+  async renderGenerationInfo(snapshot = true): Promise<void> {
+    if (snapshot) await this.heatmap.snapshot()
+
     const generationTimeMs = performance.now() - this.heatmap.generationStartTs
 
     // Convert to seconds with one decimal
