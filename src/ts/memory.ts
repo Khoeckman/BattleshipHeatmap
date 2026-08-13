@@ -9,6 +9,7 @@ import { CACHE_LINE_SIZE } from './constants'
  */
 export const alignToCacheLine = (elements: number, arrayConstructor?: { readonly BYTES_PER_ELEMENT: number }) =>
   Math.ceil(elements / CACHE_LINE_SIZE) * CACHE_LINE_SIZE * (arrayConstructor?.BYTES_PER_ELEMENT || 1)
+
 /**
  * Bit layout of the single `Int32` backing this lock's state:
  *
@@ -28,6 +29,9 @@ const COUNT_MASK = 0x3fffffff
 /**
  * A lock held either exclusively by `main`, or concurrently by any number
  * of `worker`s — never both at once.
+ *
+ * This is a writer-preferring readers-writer lock: `main` is the sole
+ * writer and workers are readers.
  *
  * ### Guarantees
  * - Calling {@link lockExclusive} immediately prevents any *new* worker
@@ -63,7 +67,7 @@ const COUNT_MASK = 0x3fffffff
  * const lock = new SharedExclusiveLock()
  * worker.postMessage(lock)
  *
- * await lock.lockExclusive()
+ * await lock.lockExclusive('yield')
  * try {
  *   // exclusive section: no worker holds the lock here
  * } finally {
@@ -101,7 +105,7 @@ export class SharedExclusiveLock {
    * the receiving side to get back a fully working instance, backed by the
    * same underlying memory and therefore the same lock state.
    *
-   * @param lock - The (method-less) object received via `postMessage`.
+   * @param lock The (method-less) object received via `postMessage`.
    * @returns A new `SharedExclusiveLock` sharing `lock`'s underlying buffer.
    */
   static connect(lock: SharedExclusiveLock) {
@@ -109,7 +113,7 @@ export class SharedExclusiveLock {
   }
 
   /**
-   * @param sab - An existing backing buffer, typically the `.sab` of a
+   * @param sab An existing backing buffer, typically the `.sab` of a
    * `SharedExclusiveLock` received from another thread (see
    * {@link connect}). Omit to allocate a fresh, unlocked lock.
    */
@@ -192,17 +196,39 @@ export class SharedExclusiveLock {
    * {@link unlockShared}. Once the worker count drains to zero, this
    * resolves with the lock held.
    *
-   * @returns A promise that resolves once main holds the lock.
-   * @throws {Error} If called while main already holds, or is already
-   * requesting, the lock. Only one exclusive request is supported at a
-   * time; this method is not reentrant.
+   * Calling this while main already holds, or is already requesting, the
+   * lock is a reentrancy conflict — this method is not reentrant, and
+   * `onReentrant` controls how that conflict is handled:
+   * - `'return'` — resolve `false` immediately, without acquiring the lock.
+   * - `'throw'` — throw an `Error` immediately.
+   * - `'yield'` — cooperatively yield via `scheduler.yield()` and retry
+   *   until the conflicting request clears, then proceed as normal.
+   *   Requires a runtime with a global `scheduler.yield()` (Chromium-based
+   *   browsers). Firefox, Safari, Node.js, and Bun don't expose it as a
+   *   global — Node.js and Bun instead expose an equivalent under
+   *   `timersPromises.scheduler.yield()` from `node:timers/promises`,
+   *   which would need to be substituted in for this mode to work there.
+   *
+   * @param onReentrant - How to handle a conflicting request from main
+   * itself (see above). Never triggered by worker contention — waiting out
+   * workers is handled unconditionally by the second phase below.
+   * @returns A promise resolving to `true` once main holds the lock, or to
+   * `false` if `onReentrant` is `'return'` and a conflicting request was
+   * already in effect.
+   * @throws {Error} If `onReentrant` is `'throw'` and a conflicting
+   * request was already in effect.
    */
-  async lockExclusive() {
+  async lockExclusive(onReentrant: 'return' | 'yield' | 'throw'): Promise<boolean> {
     while (true) {
       const current = Atomics.load(this.state, 0)
 
       if (current & (MAIN_ACTIVE | MAIN_WAITING)) {
-        throw new Error('SharedExclusiveLock is in inconsistent state: lockExclusive on excluded lock')
+        if (onReentrant === 'return') return false
+        if (onReentrant === 'throw') {
+          throw new Error('SharedExclusiveLock is in inconsistent state: lockExclusive on excluded lock')
+        }
+        await scheduler.yield()
+        continue
       }
 
       const next = current | MAIN_WAITING
@@ -214,7 +240,7 @@ export class SharedExclusiveLock {
 
       if (!(current & COUNT_MASK)) {
         const next = (current & ~MAIN_WAITING) | MAIN_ACTIVE
-        if (Atomics.compareExchange(this.state, 0, current, next) === current) return
+        if (Atomics.compareExchange(this.state, 0, current, next) === current) return true
         continue
       }
 

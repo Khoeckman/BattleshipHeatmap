@@ -27,7 +27,6 @@ let boatPlaceAttempts: number
 
 const onresult = (callback: () => void) => {
   lock.lockShared()
-
   try {
     if (Atomics.load(mainData, JOB_ID) === data.id) return
     callback()

@@ -22,6 +22,20 @@ export type JobData = {
   grid?: number[][]
 }
 
+export const tryExclusiveLock = async (
+  lock: SharedExclusiveLock,
+  onReentrant: 'return' | 'yield' | 'throw',
+  callback: () => void
+): Promise<boolean> => {
+  if (!(await lock.lockExclusive(onReentrant))) return false
+  try {
+    callback()
+  } finally {
+    lock.unlockExclusive()
+  }
+  return true
+}
+
 export default class BattleshipHeatmap extends BattleshipGrid {
   #threads = Math.max(1, navigator.hardwareConcurrency)
   #workers: Worker[] = Array(this.#threads)
@@ -136,18 +150,17 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   /**
    * Creates a SharedArrayBuffer that is aligned to the CPU's cache line size to prevent false sharing.
    *
-   * @param elements - The number of elements in the array.
-   * @param arrayBufferView - The typed array constructor to determine the size of each element.
+   * @param elements The number of elements in the array.
+   * @param arrayBufferView The typed array constructor to determine the size of each element.
    * @returns A SharedArrayBuffer that is aligned to the CPU's cache line size.
+   * @throws {Error}
    */
   sab(elements: number, arrayConstructor: { readonly BYTES_PER_ELEMENT: number }): SharedArrayBuffer {
     return new SharedArrayBuffer(alignToCacheLine(elements, arrayConstructor) * this.#threads)
   }
 
   async snapshot() {
-    await this.#lock.lockExclusive()
-
-    try {
+    await tryExclusiveLock(this.#lock, 'return', () => {
       // Accumulators
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
@@ -170,9 +183,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
           }
         }
       }
-    } finally {
-      this.#lock.unlockExclusive()
-    }
+    })
   }
 
   getHeat(row: number, col: number): number {
@@ -249,9 +260,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async #startGenerating() {
-    await this.#lock.lockExclusive()
-
-    try {
+    await tryExclusiveLock(this.#lock, 'yield', () => {
       this.#generating = true
       this.generationStartTs = performance.now()
       this.resetHeatmap()
@@ -265,9 +274,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         allowTouching: this.allowTouching,
         grid: this.grid,
       }
-    } finally {
-      this.#lock.unlockExclusive()
-    }
+    })
 
     for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++)
       this.#createWorker(workerIndex).postMessage({ ...this.jobData })
