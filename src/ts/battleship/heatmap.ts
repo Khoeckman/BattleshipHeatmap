@@ -306,7 +306,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     worker.postMessage(sharedData)
 
-    this.#workers.push(worker)
+    this.#workers[workerIndex] = worker
     return worker
   }
 }
