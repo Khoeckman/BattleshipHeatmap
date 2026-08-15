@@ -252,8 +252,7 @@ export default class BattleshipIO {
         const isCursor = row === this.cursor.row && col === this.cursor.col
 
         if (!heat) {
-          cellEl.classList.value = 'cell'
-          if (isCursor) cellEl.classList.add('cursor')
+          cellEl.classList.value = isCursor ? 'cell cursor' : 'cell'
           continue
         }
         cellEl.textContent = heatString
@@ -266,15 +265,15 @@ export default class BattleshipIO {
         const normalizedHeat = !heatDiff ? 0.5 : (heat - minHeat) / (maxHeat - minHeat)
         cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
-
-      this.renderGenerationInfo(false)
     }
 
     this.heat.hotspots = hotspots
 
-    this.gridEl.classList.add('restart-hotspot-animation')
+    // this.gridEl.classList.add('restart-hotspot-animation')
     // void this.gridEl.offsetWidth
-    this.gridEl.classList.remove('restart-hotspot-animation')
+    // this.gridEl.classList.remove('restart-hotspot-animation')
+
+    this.renderGenerationInfo(false)
   }
 
   async scheduleRenderHeatmap(): Promise<void> {
