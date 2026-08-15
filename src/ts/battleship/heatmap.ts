@@ -22,12 +22,13 @@ export type JobData = {
   grid?: number[][]
 }
 
-export const tryExclusiveLock = async (
-  lock: SharedExclusiveLock,
-  onReentrant: 'return' | 'yield' | 'throw',
-  callback: () => void
-): Promise<boolean> => {
-  if (!(await lock.lockExclusive(onReentrant))) return false
+export const tryExclusiveLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<boolean> => {
+  try {
+    await lock.lockExclusive()
+  } catch {
+    return false
+  }
+
   try {
     callback()
   } finally {
@@ -163,8 +164,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return new SharedArrayBuffer(alignToCacheLine(elements, arrayConstructor) * this.#threads)
   }
 
-  async snapshot() {
-    await tryExclusiveLock(this.#lock, 'throw', () => {
+  async snapshot(): Promise<boolean> {
+    return await tryExclusiveLock(this.#lock, () => {
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
       this.#heatmap = Array(this.rows)
@@ -258,21 +259,25 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async #startGenerating() {
-    await tryExclusiveLock(this.#lock, 'throw', () => {
-      this.#generating = true
-      this.generationStartTs = performance.now()
-      this.resetHeatmap()
+    let success = false
 
-      this.jobData = {
-        id: this.#mainDataLive[JOB_ID],
-        rows: this.rows,
-        cols: this.cols,
-        boatLengths: this.boatLengths,
-        boatsSunken: this.boatsSunken,
-        allowTouching: this.allowTouching,
-        grid: this.grid,
-      }
-    })
+    while (!success) {
+      await tryExclusiveLock(this.#lock, () => {
+        this.#generating = true
+        this.generationStartTs = performance.now()
+        this.resetHeatmap()
+
+        this.jobData = {
+          id: this.#mainDataLive[JOB_ID],
+          rows: this.rows,
+          cols: this.cols,
+          boatLengths: this.boatLengths,
+          boatsSunken: this.boatsSunken,
+          allowTouching: this.allowTouching,
+          grid: this.grid,
+        }
+      })
+    }
 
     for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++)
       this.#createWorker(workerIndex).postMessage({ ...this.jobData })

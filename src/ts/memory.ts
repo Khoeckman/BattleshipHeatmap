@@ -123,11 +123,7 @@ export class SharedExclusiveLock {
   }
 
   /**
-   * Worker side (sync)
-   *
-   * These methods block synchronously via `Atomics.wait` and must only be
-   * called from a thread where blocking is acceptable — never from the
-   * main/UI thread.
+   * Worker side
    */
 
   /**
@@ -181,56 +177,31 @@ export class SharedExclusiveLock {
   }
 
   /**
-   * Main side (async)
-   *
-   * `Atomics.wait` is not valid on the main/UI thread, so these methods
-   * use `Atomics.waitAsync` instead and return promises.
+   * Main side
    */
 
   /**
-   * Acquires the lock exclusively for main.
+   * `Atomics.wait` is not valid on the main thread — calling it throws.
+   * Therefore main can't block synchronously while workers drain; instead
+   * `lockExclusive` marks its intent via `MAIN_WAITING` and then awaits
+   * `Atomics.waitAsync`, which is the non-blocking equivalent, resuming
+   * this async function whenever `unlockShared` notifies it.
    *
-   * Immediately marks the lock as requested — from this point on, no
-   * worker can newly acquire it via {@link lockShared}. Workers already
-   * holding the lock are unaffected and keep it until they call
-   * {@link unlockShared}. Once the worker count drains to zero, this
-   * resolves with the lock held.
+   * Acquires the lock on behalf of main. Immediately marks the lock as
+   * requested — after this point no new worker can acquire the lock.
+   * {@link lockShared} — then asynchronously waits for any
+   * currently-held worker locks to drain to zero before resolving.
    *
-   * Calling this while main already holds, or is already requesting, the
-   * lock is a reentrancy conflict — this method is not reentrant, and
-   * `onReentrant` controls how that conflict is handled:
-   * - `'return'` — resolve `false` immediately, without acquiring the lock.
-   * - `'throw'` — throw an `Error` immediately.
-   * - `'yield'` — cooperatively yield via `scheduler.yield()` and retry
-   *   until the conflicting request clears, then proceed as normal.
-   *   Requires a runtime with a global `scheduler.yield()` (Chromium-based
-   *   browsers). Firefox, Safari, Node.js, and Bun don't expose it as a
-   *   global — Node.js and Bun instead expose an equivalent under
-   *   `timersPromises.scheduler.yield()` from `node:timers/promises`,
-   *   which would need to be substituted in for this mode to work there.
-   *
-   * @param onReentrant - How to handle a conflicting request from main
-   * itself (see above). Never triggered by worker contention — waiting out
-   * workers is handled unconditionally by the second phase below.
-   * @returns A promise resolving to `true` once main holds the lock, or to
-   * `false` if `onReentrant` is `'return'` and a conflicting request was
-   * already in effect.
-   * @throws {Error} If `onReentrant` is `'throw'` and a conflicting
-   * request was already in effect.
+   * @returns A promise that resolves once main holds the lock exclusively.
+   * @throws {Error} If main is already holding or requesting the lock.
    */
-  async lockExclusive(onReentrant: 'return' | 'yield' | 'throw'): Promise<boolean> {
+  async lockExclusive(): Promise<void> {
     while (true) {
       const current = Atomics.load(this.state, 0)
 
       if (current & (MAIN_ACTIVE | MAIN_WAITING)) {
-        if (onReentrant === 'return') return false
-        if (onReentrant === 'throw') {
-          throw new Error('SharedExclusiveLock is in inconsistent state: lockExclusive on excluded lock')
-        }
-        await scheduler.yield()
-        continue
+        throw new Error('SharedExclusiveLock is in inconsistent state: lockExclusive on excluded lock')
       }
-
       const next = current | MAIN_WAITING
       if (Atomics.compareExchange(this.state, 0, current, next) === current) break
     }
@@ -240,7 +211,7 @@ export class SharedExclusiveLock {
 
       if (!(current & COUNT_MASK)) {
         const next = (current & ~MAIN_WAITING) | MAIN_ACTIVE
-        if (Atomics.compareExchange(this.state, 0, current, next) === current) return true
+        if (Atomics.compareExchange(this.state, 0, current, next) === current) return
         continue
       }
 
