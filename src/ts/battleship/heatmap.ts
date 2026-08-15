@@ -117,6 +117,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     this.#onFinishGenerating = onFinishGenerating
 
+    for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++) {
+      this.#createWorker(workerIndex)
+    }
     this.snapshot()
   }
 
@@ -135,7 +138,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set attempts(value) {
-    this.#forEachWorker((workerDataOffset) => {
+    this.#forEachThread((workerDataOffset) => {
       Atomics.store(this.#workerDataLive, workerDataOffset + ATTEMPTS, value)
     })
     this.#workerData[ATTEMPTS] = value
@@ -146,7 +149,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set success(value) {
-    this.#forEachWorker((workerDataOffset) => {
+    this.#forEachThread((workerDataOffset) => {
       Atomics.store(this.#workerDataLive, workerDataOffset + SUCCESSES, value)
     })
     this.#workerData[SUCCESSES] = value
@@ -172,7 +175,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         .fill(0)
         .map(() => Array(this.cols).fill(0))
 
-      this.#forEachWorker((workerDataOffset, heatmapOffset) => {
+      this.#forEachThread((workerDataOffset, heatmapOffset) => {
         this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
         this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
 
@@ -262,7 +265,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     let success = false
 
     while (!success) {
-      await tryExclusiveLock(this.#lock, () => {
+      success = await tryExclusiveLock(this.#lock, () => {
         this.#generating = true
         this.generationStartTs = performance.now()
         this.resetHeatmap()
@@ -279,8 +282,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       })
     }
 
-    for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++)
-      this.#createWorker(workerIndex).postMessage({ ...this.jobData })
+    for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++) {
+      this.#workers[workerIndex].postMessage({ ...this.jobData })
+    }
 
     // Keep generating until timeout expires
     this.generationTimeoutId = setTimeout(() => {
@@ -323,11 +327,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return worker
   }
 
-  #forEachWorker(callback: (workerDataOffset: number, heatmapOffset: number) => void) {
+  #forEachThread(callback: (workerDataOffset: number, heatmapOffset: number) => void) {
     for (
-      let workerIndex = 0, workerDataOffset = 0, heatmapOffset = 0;
-      workerIndex < this.#threads;
-      workerIndex++, workerDataOffset += this.#workerDataSegmentSize, heatmapOffset += this.#heatmapSegmentSize
+      let t = 0, workerDataOffset = 0, heatmapOffset = 0;
+      t < this.#threads;
+      t++, workerDataOffset += this.#workerDataSegmentSize, heatmapOffset += this.#heatmapSegmentSize
     ) {
       callback(workerDataOffset, heatmapOffset)
     }
