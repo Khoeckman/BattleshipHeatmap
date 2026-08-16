@@ -11,136 +11,100 @@ export const alignToCacheLine = (elements: number, arrayConstructor?: { readonly
   Math.ceil(elements / CACHE_LINE_SIZE) * CACHE_LINE_SIZE * (arrayConstructor?.BYTES_PER_ELEMENT || 1)
 
 /**
- * Bit layout of the single `Int32` backing this lock's state:
+ * Packed 32-bit lock state, stored in `state[0]`.
  *
- * ```
- * bit 31         bit 30          bits 0-29
- * MAIN_ACTIVE    MAIN_WAITING    worker count (0 to 2^30 - 1)
- * ```
+ * Both counts live in one word so every transition is a single
+ * {@link Atomics.compareExchange} — writers and readers can never observe
+ * (or produce) a state where the two counts disagree with reality.
  */
-const MAIN_ACTIVE = 0x80000000
-
-/** @see {@link MAIN_ACTIVE} for the full bit layout. */
-const MAIN_WAITING = 0x40000000
-
-/** @see {@link MAIN_ACTIVE} for the full bit layout. */
-const COUNT_MASK = 0x3fffffff
+const READER_COUNT_MASK = 0x00ffffff
+const WRITER_COUNT_MASK = 0xff000000
+const WRITER_COUNT_UNIT = 0x01000000 // one writer
 
 /**
- * A lock held either exclusively by `main`, or concurrently by any number
- * of `worker`s — never both at once.
+ * A group-mutual-exclusion lock for coordinating "main" (writer) and
+ * "worker" (reader) access to a `SharedArrayBuffer`.
  *
- * This is a writer-preferring readers-writer lock: `main` is the sole
- * writer and workers are readers.
- *
- * ### Guarantees
- * - Calling {@link lockExclusive} immediately prevents any *new* worker
- *   from acquiring the lock via {@link lockShared}.
- * - A worker that already holds the lock is never preempted: it keeps the
- *   lock until it calls {@link unlockShared}, even while main is waiting.
- * - No worker can acquire the lock while main holds it, or is requesting it.
- * - Once the worker count drains to zero, main is woken and takes the lock
- *   immediately.
+ * Compatibility matrix:
+ * ```
+ *          write   read
+ * write      ✓      ✗
+ * read       ✗      ✓
+ * ```
+ * Same-mode holders never block each other; the two modes always do.
+ * Concretely:
+ * - Any number of main-side call sites can hold the lock via
+ *   {@link lockExclusive} at once. There is no "sole owner" invariant —
+ *   if your protected work isn't safe to interleave with itself, that
+ *   safety has to come from the caller, not this lock.
+ * - Any number of workers can hold {@link lockShared} at once.
+ * - Once at least one writer has called {@link lockExclusive}, no new
+ *   reader can start, even if that writer is still draining existing
+ *   readers (write-preferring, to avoid writer starvation).
+ * - A reader that already holds the lock is never preempted; it keeps it
+ *   until it calls {@link unlockShared}.
+ * - As soon as the reader count hits zero while a writer is
+ *   waiting, that writer (and any other writer waiting alongside it)
+ *   proceeds immediately.
  *
  * ### Threading model
- * `main` is assumed to run somewhere `Atomics.wait` is disallowed (the DOM
- * main thread), so {@link lockExclusive} and {@link unlockExclusive} are
- * async, built on `Atomics.waitAsync`. `worker`s are assumed to run
- * somewhere blocking is acceptable, so {@link lockShared} and
- * {@link unlockShared} are synchronous.
+ * `Atomics.wait` cannot be called on a JS engine's main/UI thread — it
+ * throws. This lock assumes **main runs on such a thread**, so
+ * {@link lockExclusive} is async, built on `Atomics.waitAsync`. Workers
+ * are assumed to run on threads where blocking is fine (Web Workers,
+ * `worker_threads`), so {@link lockShared} and {@link unlockShared} are
+ * synchronous. `unlockExclusive` never needs to wait, so it stays sync too.
  *
- * This class supports exactly one main-side caller at a time.
- * {@link lockExclusive} is not reentrant and does not queue concurrent
- * requests from multiple main-side callers.
- *
- * ### Requirements
- * - A `SharedArrayBuffer`-capable environment. In browsers this means the
- *   page must be cross-origin isolated (served with `Cross-Origin-Opener-Policy:
- *   same-origin` and `Cross-Origin-Embedder-Policy: require-corp`).
- * - `Atomics.waitAsync` support: Node.js 16+, Chromium 87+, Firefox 96+,
- *   Safari 16.4+. In TypeScript, `"lib"` must include `"es2021"` or later.
+ * `Atomics.waitAsync` needs a reasonably modern runtime (Node 16+,
+ * Chromium 87+, Firefox 96+, Safari 16.4+) and `"lib": ["es2021"]` or
+ * later in `tsconfig.json`.
  *
  * ### Usage
- * @example
- * ```typescript
- * // main.ts
- * const lock = new SharedExclusiveLock()
- * worker.postMessage(lock)
- *
- * await lock.lockExclusive('yield')
+ * ```ts
+ * // main thread — any number of call sites can do this concurrently
+ * await lock.lockExclusive()
  * try {
- *   // exclusive section: no worker holds the lock here
+ *   // ...write work, safe to interleave with other write work...
  * } finally {
  *   lock.unlockExclusive()
  * }
  * ```
- *
- * @example
- * ```typescript
- * // worker.ts
- * self.onmessage = (e: MessageEvent<SharedExclusiveLock>) => {
- *   const lock = SharedExclusiveLock.connect(e.data)
- *
- *   lock.lockShared()
- *   try {
- *     // shared section: main does not hold the lock here
- *   } finally {
- *     lock.unlockShared()
- *   }
+ * ```ts
+ * // worker thread
+ * lock.lockShared()
+ * try {
+ *   // ...read work...
+ * } finally {
+ *   lock.unlockShared()
  * }
  * ```
  *
  * @see {@link https://blogtitle.github.io/using-javascript-sharedarraybuffers-and-atomics/}
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics/waitAsync}
  */
 export class SharedExclusiveLock {
   private sab: SharedArrayBuffer
   private state: Int32Array<SharedArrayBuffer>
 
-  /**
-   * Rehydrates a `SharedExclusiveLock` received from another thread.
-   *
-   * Passing an instance through `postMessage` structurally clones it,
-   * which drops its prototype and methods but keeps its `sab` field intact
-   * (`SharedArrayBuffer` is itself directly cloneable). Call `connect` on
-   * the receiving side to get back a fully working instance, backed by the
-   * same underlying memory and therefore the same lock state.
-   *
-   * @param lock The (method-less) object received via `postMessage`.
-   * @returns A new `SharedExclusiveLock` sharing `lock`'s underlying buffer.
-   */
   static connect(lock: SharedExclusiveLock) {
     return new SharedExclusiveLock(lock.sab)
   }
 
-  /**
-   * @param sab An existing backing buffer, typically the `.sab` of a
-   * `SharedExclusiveLock` received from another thread (see
-   * {@link connect}). Omit to allocate a fresh, unlocked lock.
-   */
   constructor(sab?: SharedArrayBuffer) {
     this.sab = sab || new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT)
     this.state = new Int32Array(this.sab)
   }
 
   /**
-   * Worker side
-   */
-
-  /**
-   * Acquires the lock for this worker, blocking until it is available.
-   *
-   * Returns immediately if the lock is unheld or already held by one or
-   * more other workers, and main is neither holding it nor requesting it.
-   * Otherwise blocks until main releases or withdraws its request.
-   *
-   * Increments the worker count on success. Pair every call with a
-   * matching {@link unlockShared} call, ideally in a `try`/`finally`.
+   * Acquires a reader slot. Returns immediately if no writer currently
+   * holds or is waiting for the lock; blocks (via `Atomics.wait`) while
+   * any writer is active or pending, and retries once woken.
    */
   lockShared() {
     while (true) {
       const current = Atomics.load(this.state, 0)
 
-      if (current & (MAIN_ACTIVE | MAIN_WAITING)) {
+      if (current & WRITER_COUNT_MASK) {
         Atomics.wait(this.state, 0, current)
         continue
       }
@@ -151,69 +115,47 @@ export class SharedExclusiveLock {
   }
 
   /**
-   * Releases this worker's hold on the lock.
+   * Releases a reader slot acquired with {@link lockShared}. If this
+   * brings the reader count to zero and a writer is waiting, wakes it.
    *
-   * If this call brings the worker count to zero while main is waiting in
-   * {@link lockExclusive}, wakes main so it can proceed.
-   *
-   * @throws {Error} If called while no worker currently holds the lock
-   * (unbalanced {@link lockShared}/{@link unlockShared} calls).
+   * @throws {Error} If called while no reader currently holds the lock.
    */
   unlockShared() {
     while (true) {
       const current = Atomics.load(this.state, 0)
-      const count = current & COUNT_MASK
+      const readers = current & READER_COUNT_MASK
 
-      if (!count) {
+      if (readers === 0) {
         throw new Error('SharedExclusiveLock is in inconsistent state: unlockShared on lock with zero shared holders')
       }
 
       const next = current - 1
       if (Atomics.compareExchange(this.state, 0, current, next) === current) {
-        if (!(next & COUNT_MASK) && next & MAIN_WAITING) Atomics.notify(this.state, 0)
+        if (!(next & READER_COUNT_MASK) && next & WRITER_COUNT_MASK) Atomics.notify(this.state, 0)
         return
       }
     }
   }
 
   /**
-   * Main side
-   */
-
-  /**
-   * `Atomics.wait` is not valid on the main thread — calling it throws.
-   * Therefore main can't block synchronously while workers drain; instead
-   * `lockExclusive` marks its intent via `MAIN_WAITING` and then awaits
-   * `Atomics.waitAsync`, which is the non-blocking equivalent, resuming
-   * this async function whenever `unlockShared` notifies it.
+   * Acquires a writer slot. Announces intent immediately — no new reader
+   * can start from this point until every current writer unlocks — then
+   * asynchronously waits for any currently-held reader slots to drain to
+   * zero before resolving. Joins freely alongside any other writers
+   * already holding or waiting for the lock.
    *
-   * Acquires the lock on behalf of main. Immediately marks the lock as
-   * requested — after this point no new worker can acquire the lock.
-   * {@link lockShared} — then asynchronously waits for any
-   * currently-held worker locks to drain to zero before resolving.
-   *
-   * @returns A promise that resolves once main holds the lock exclusively.
-   * @throws {Error} If main is already holding or requesting the lock.
+   * @returns A promise that resolves once this call holds the write lock.
    */
-  async lockExclusive(): Promise<void> {
+  async lockExclusive() {
     while (true) {
       const current = Atomics.load(this.state, 0)
-
-      if (current & (MAIN_ACTIVE | MAIN_WAITING)) {
-        throw new Error('SharedExclusiveLock is in inconsistent state: lockExclusive on excluded lock')
-      }
-      const next = current | MAIN_WAITING
+      const next = current + WRITER_COUNT_UNIT
       if (Atomics.compareExchange(this.state, 0, current, next) === current) break
     }
 
     while (true) {
       const current = Atomics.load(this.state, 0)
-
-      if (!(current & COUNT_MASK)) {
-        const next = (current & ~MAIN_WAITING) | MAIN_ACTIVE
-        if (Atomics.compareExchange(this.state, 0, current, next) === current) return
-        continue
-      }
+      if (!(current & READER_COUNT_MASK)) return
 
       const { async, value } = Atomics.waitAsync(this.state, 0, current)
       if (async) await value
@@ -221,22 +163,26 @@ export class SharedExclusiveLock {
   }
 
   /**
-   * Releases main's exclusive hold on the lock and wakes every worker
-   * currently blocked in {@link lockShared}.
+   * Releases a writer slot acquired with {@link lockExclusive}. If this
+   * brings the writer count to zero, wakes any readers blocked in
+   * {@link lockShared}.
    *
-   * @throws {Error} If called while main does not hold the lock.
+   * @throws {Error} If called while no writer currently holds the lock.
    */
   unlockExclusive() {
     while (true) {
       const current = Atomics.load(this.state, 0)
+      const writers = (current & WRITER_COUNT_MASK) >>> Math.log2(WRITER_COUNT_UNIT)
 
-      if (!(current & MAIN_ACTIVE)) {
-        throw new Error('SharedExclusiveLock is in inconsistent state: unlockExclusive on non-excluded lock')
+      if (writers === 0) {
+        throw new Error(
+          'SharedExclusiveLock is in inconsistent state: unlockExclusive on lock with zero exclusive holders'
+        )
       }
 
-      const next = current & ~MAIN_ACTIVE
+      const next = current - WRITER_COUNT_UNIT
       if (Atomics.compareExchange(this.state, 0, current, next) === current) {
-        Atomics.notify(this.state, 0)
+        if (!(next & WRITER_COUNT_MASK)) Atomics.notify(this.state, 0)
         return
       }
     }

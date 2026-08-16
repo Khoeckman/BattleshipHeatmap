@@ -22,19 +22,13 @@ export type JobData = {
   grid?: number[][]
 }
 
-export const tryExclusiveLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<boolean> => {
-  try {
-    await lock.lockExclusive()
-  } catch {
-    return false
-  }
-
+export const tryExclusiveLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
+  await lock.lockExclusive()
   try {
     callback()
   } finally {
     lock.unlockExclusive()
   }
-  return true
 }
 
 export default class BattleshipHeatmap extends BattleshipGrid {
@@ -129,8 +123,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   set generating(value: boolean) {
     if (this.#generating === value) return
-    if (value) this.#startGenerating()
-    else this.#stopGenerating()
+    if (value) this.startGenerating()
+    else this.stopGenerating()
   }
 
   get attempts() {
@@ -167,8 +161,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return new SharedArrayBuffer(alignToCacheLine(elements, arrayConstructor) * this.#threads)
   }
 
-  async snapshot(): Promise<boolean> {
-    return await tryExclusiveLock(this.#lock, () => {
+  async snapshot(): Promise<void> {
+    await tryExclusiveLock(this.#lock, () => {
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
       this.#heatmap = Array(this.rows)
@@ -261,26 +255,27 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.jobData = null
   }
 
-  async #startGenerating() {
-    let success = false
+  async startGenerating() {
+    // Restart if already generating
+    if (this.#generating) await this.stopGenerating()
 
-    while (!success) {
-      success = await tryExclusiveLock(this.#lock, () => {
-        this.#generating = true
-        this.generationStartTs = performance.now()
-        this.resetHeatmap()
+    await tryExclusiveLock(this.#lock, () => {
+      console.log('true', new Error().stack)
 
-        this.jobData = {
-          id: this.#mainDataLive[JOB_ID],
-          rows: this.rows,
-          cols: this.cols,
-          boatLengths: this.boatLengths,
-          boatsSunken: this.boatsSunken,
-          allowTouching: this.allowTouching,
-          grid: this.grid,
-        }
-      })
-    }
+      this.#generating = true
+      this.generationStartTs = performance.now()
+      this.resetHeatmap()
+
+      this.jobData = {
+        id: this.#mainDataLive[JOB_ID],
+        rows: this.rows,
+        cols: this.cols,
+        boatLengths: this.boatLengths,
+        boatsSunken: this.boatsSunken,
+        allowTouching: this.allowTouching,
+        grid: this.grid,
+      }
+    })
 
     for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++) {
       this.#workers[workerIndex].postMessage({ ...this.jobData })
@@ -295,16 +290,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.#onStartGenerating()
   }
 
-  #stopGenerating() {
-    this.#generating = false
-    this.jobData = null
+  async stopGenerating() {
+    await tryExclusiveLock(this.#lock, () => {
+      console.log('false', new Error().stack)
 
-    // Stop workers
-    Atomics.add(this.#mainDataLive, JOB_ID, 1)
+      this.#generating = false
+      this.jobData = null
 
-    clearTimeout(this.generationTimeoutId)
+      // Stop workers
+      Atomics.add(this.#mainDataLive, JOB_ID, 1)
 
-    this.#onStopGenerating()
+      clearTimeout(this.generationTimeoutId)
+
+      this.#onStopGenerating()
+    })
   }
 
   #createWorker(workerIndex: number): Worker {
