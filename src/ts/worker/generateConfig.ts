@@ -112,9 +112,7 @@ function generateConfig(grid: Grid): void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      onresult(() => {
-        mainData[workerDataOffset + ATTEMPTS]++
-      })
+      onresult(() => mainData[workerDataOffset + ATTEMPTS]++)
       return
     }
   }
@@ -129,16 +127,13 @@ function generateConfig(grid: Grid): void {
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        onresult(() => {
-          mainData[workerDataOffset + ATTEMPTS]++
-        })
+        onresult(() => mainData[workerDataOffset + ATTEMPTS]++)
         return
       }
     }
   }
 
   // Successful configuration found
-
   onresult(() => {
     workerData[workerDataOffset + ATTEMPTS]++
     workerData[workerDataOffset + SUCCESSES]++

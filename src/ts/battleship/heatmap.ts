@@ -22,7 +22,7 @@ export type JobData = {
   grid?: number[][]
 }
 
-export const tryExclusiveLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
+export const scopedLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
   await lock.lockExclusive()
   try {
     callback()
@@ -162,7 +162,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async snapshot(): Promise<void> {
-    await tryExclusiveLock(this.#lock, () => {
+    await scopedLock(this.#lock, () => {
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
       this.#heatmap = Array(this.rows)
@@ -259,7 +259,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     // Restart if already generating
     if (this.#generating) await this.stopGenerating()
 
-    await tryExclusiveLock(this.#lock, () => {
+    await scopedLock(this.#lock, () => {
       console.log('true', new Error().stack)
 
       this.#generating = true
@@ -291,7 +291,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async stopGenerating() {
-    await tryExclusiveLock(this.#lock, () => {
+    await scopedLock(this.#lock, () => {
       console.log('false', new Error().stack)
 
       this.#generating = false
