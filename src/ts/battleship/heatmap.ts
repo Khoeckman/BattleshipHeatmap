@@ -309,8 +309,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   #createWorker(workerIndex: number): Worker {
     if (this.#workers[workerIndex]) return this.#workers[workerIndex]
 
-    const scriptURL = new URL('../worker/generateConfig.ts', import.meta.url)
-    const worker = new Worker(scriptURL, { type: 'module' })
+    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
     const sharedData: SharedData = {
       workerIndex,
       lock: this.#lock,
