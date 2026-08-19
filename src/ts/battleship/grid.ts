@@ -8,6 +8,10 @@ export default class BattleshipGrid {
   public static readonly HIT = 2
   public static readonly MISS = 4
 
+  public static readonly MAX_ROWS = 26
+  public static readonly MAX_COLS = 26
+  public static readonly MAX_LENGTH = Math.max(this.MAX_ROWS, this.MAX_COLS)
+
   public static forEachBoatSegment(boat: Boat, callback: (row: number, col: number) => void): void {
     let row = boat.row
     let col = boat.col
@@ -66,8 +70,8 @@ export default class BattleshipGrid {
   }
 
   private set rows(value: number) {
-    if (!(value >= 1 && value <= 26)) {
-      throw new RangeError('grid dimensions must be between 1 and 26')
+    if (!(value >= 1 && value <= BattleshipGrid.MAX_ROWS)) {
+      throw new RangeError('grid dimensions must be between 1 and ' + BattleshipGrid.MAX_ROWS)
     }
     this.#rows = value
   }
@@ -77,8 +81,8 @@ export default class BattleshipGrid {
   }
 
   private set cols(value: number) {
-    if (!(value >= 1 && value <= 26)) {
-      throw new RangeError('grid dimensions must be between 1 and 26')
+    if (!(value >= 1 && value <= BattleshipGrid.MAX_COLS)) {
+      throw new RangeError('grid dimensions must be between 1 and ' + BattleshipGrid.MAX_COLS)
     }
     this.#cols = value
   }
@@ -88,8 +92,8 @@ export default class BattleshipGrid {
   }
 
   set boatLengths(value: number[]) {
-    if (!Array.isArray(value) || !value.every((length) => length > 0 && length <= 26)) {
-      throw new RangeError('boatLengths must be an array of numbers between 1 and 26')
+    if (!Array.isArray(value) || !value.every((length) => length > 0 && length <= BattleshipGrid.MAX_LENGTH)) {
+      throw new RangeError('boatLengths must be an array of numbers between 1 and ' + BattleshipGrid.MAX_LENGTH)
     }
     if (!value.length) {
       throw new RangeError('boatLengths must contain at least one boat')

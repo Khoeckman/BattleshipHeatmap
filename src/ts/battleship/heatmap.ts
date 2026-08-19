@@ -37,20 +37,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   #lock = new SharedExclusiveLock()
 
   /**
-   * Shared data from the workers to the main thread.
+   * Shared data from the main thread to the workers.
    *
    * 0 Job ID - If this ID does not match the ID of the worker (anymore) it means it should stop generating and close.
    */
-  #mainDataLive = new Int32Array(this.sab(1, Int32Array))
+  #mainDataLive = new Uint32Array(this.sab(1, Uint32Array))
 
   /**
-   * Shared data from the workers to the main thread.
+   * Shared data from the workers to the main thread, separated per worker.
    *
    * 0 Attempts - The number of attempts to generate a valid configuration.
    * 1 Successes - The number of valid configurations accumulated to produce the heatmap.
    */
-  #workerDataLive = new Int32Array(this.sab(2, Int32Array))
   #workerDataSegmentSize = alignToCacheLine(2)
+  #workerDataLive = new Uint32Array(this.sab(2, Uint32Array))
   #workerData: number[] = []
 
   /**
@@ -59,8 +59,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * The value in each cell represents the total number of times a boat crossed
    * through that cell inside of a valid configuration.
    */
-  #heatmapLive: Uint32Array<SharedArrayBuffer>
   #heatmapSegmentSize: number
+  #heatmapLive: Uint32Array<SharedArrayBuffer>
   #heatmap: number[][] = []
 
   #generating = false
@@ -88,8 +88,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super(grid.rows, grid.cols, grid.boatLengths, grid.allowTouching, grid.grid)
     this.onChange = () => (this.generating = false)
 
-    this.#heatmapLive = new Uint32Array(this.sab(this.rows * this.cols, Uint32Array))
     this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
+    this.#heatmapLive = new Uint32Array(
+      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
+    )
 
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
@@ -233,8 +235,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   resize(rows: number, cols: number): void {
     super.resize(rows, cols)
 
-    this.#heatmapLive = new Uint32Array(this.sab(this.rows * this.cols, Uint32Array))
     this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
+
+    const newByteLength = this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads
+    const oldByteLength = this.#heatmapLive.byteLength
+    if (newByteLength > oldByteLength) this.#heatmapLive.buffer.grow(newByteLength)
 
     this.attempts = 0
     this.success = 0
@@ -260,8 +265,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     if (this.#generating) await this.stopGenerating()
 
     await scopedLock(this.#lock, () => {
-      console.log('true', new Error().stack)
-
       this.#generating = true
       this.generationStartTs = performance.now()
       this.resetHeatmap()
@@ -292,12 +295,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
 
   async stopGenerating() {
     await scopedLock(this.#lock, () => {
-      console.log('false', new Error().stack)
-
       this.#generating = false
       this.jobData = null
 
       // Stop workers
+      console.log('new job', new Error().stack)
       Atomics.add(this.#mainDataLive, JOB_ID, 1)
 
       clearTimeout(this.generationTimeoutId)

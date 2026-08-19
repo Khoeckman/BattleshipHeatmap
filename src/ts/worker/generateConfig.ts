@@ -9,8 +9,8 @@ type Grid = NonNullable<JobData['grid']>
 // SharedData
 let workerIndex: number
 let lock: SharedExclusiveLock
-let mainData: Int32Array
-let workerData: Int32Array
+let mainData: Uint32Array
+let workerData: Uint32Array
 let heatmap: Uint32Array
 let workerDataSegmentSize: number
 let heatmapSegmentSize: number
@@ -39,8 +39,8 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   if ('workerIndex' in e.data) {
     workerIndex = e.data.workerIndex
     lock = SharedExclusiveLock.connect(e.data.lock)
-    mainData = new Int32Array(e.data.mainDataBuffer)
-    workerData = new Int32Array(e.data.workerDataBuffer)
+    mainData = new Uint32Array(e.data.mainDataBuffer)
+    workerData = new Uint32Array(e.data.workerDataBuffer)
     heatmap = new Uint32Array(e.data.heatmapBuffer)
     workerDataSegmentSize = e.data.workerDataSegmentSize
     heatmapSegmentSize = e.data.heatmapSegmentSize

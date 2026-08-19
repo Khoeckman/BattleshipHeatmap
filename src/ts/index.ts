@@ -94,14 +94,12 @@ generationSecondsInput.addEventListener('change', function () {
   io.settingsStore.set('generationSeconds', io.heatmap.generationSeconds)
 })
 
-settingsForm.addEventListener('submit', function (e) {
+settingsForm.addEventListener('submit', (e) => {
   e.preventDefault()
-
-  io.heatmap.generating = false
 
   const usedSubmitButton = document.activeElement === e.submitter
   if (io.heatmap.generating && usedSubmitButton) {
-    // io.heatmap.generating = false
+    io.heatmap.generating = false
     return
   }
 

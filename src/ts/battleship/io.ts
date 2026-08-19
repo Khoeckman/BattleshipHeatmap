@@ -226,8 +226,9 @@ export default class BattleshipIO {
     minHeat *= 0.9
     maxHeat *= 1.1
 
-    const checkHotspot = (hotspots: { row: number; col: number }[], row: number, col: number): boolean =>
-      hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
+    const checkHotspot = (hotspots: { row: number; col: number }[], row: number, col: number): boolean => {
+      return hotspots.some((hotspot) => hotspot.row === row && hotspot.col === col)
+    }
 
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
@@ -393,7 +394,7 @@ export default class BattleshipIO {
     this.settingsStore.set('allowTouching', this.heatmap.allowTouching)
   }
 
-  startGenerating(): void {
+  async startGenerating(): Promise<void> {
     const largestDimension = Math.max(this.heatmap.rows, this.heatmap.cols)
 
     if (this.heatmap.boatLengths.some((boatLength) => boatLength > largestDimension)) {
@@ -414,8 +415,7 @@ export default class BattleshipIO {
     this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
 
     // Run both branches of the setter
-    this.heatmap.generating = false
-    this.heatmap.generating = true
+    await this.heatmap.startGenerating()
 
     this.renderGrid()
   }
