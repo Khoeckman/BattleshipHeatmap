@@ -16,6 +16,7 @@ main {
       'Segoe UI Emoji';
     text-align: center;
     margin-top: 0;
+    margin-inline: 4rem;
   }
 
   h3 {
@@ -244,6 +245,10 @@ main {
 
 @media (width < 20em) {
   main {
+    h1 {
+      margin-inline: 0;
+    }
+
     #dimensions > div {
       gap: 1rem;
 
