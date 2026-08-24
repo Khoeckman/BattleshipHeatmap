@@ -216,6 +216,8 @@ export default class BattleshipIO {
   async renderHeatmap(): Promise<void> {
     await this.heatmap.snapshot()
 
+    // console.log(performance.now(), 'render')
+
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
@@ -411,10 +413,10 @@ export default class BattleshipIO {
       return
     }
 
+    // TODO: what does this archieve? Add comment when I find out again
     cancelAnimationFrame(this.#frameHandle)
     this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
 
-    // Run both branches of the setter
     await this.heatmap.startGenerating()
 
     this.renderGrid()

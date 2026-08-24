@@ -16,10 +16,10 @@ export type JobData = {
   id: number
   rows: number
   cols: number
-  boatLengths: number[]
+  boatLengths: Uint8Array
   boatsSunken: Boat[]
   allowTouching: boolean
-  grid?: number[][]
+  grid?: Uint8Array[]
 }
 
 export const scopedLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
@@ -123,7 +123,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return this.#generating
   }
 
-  set generating(value: boolean) {
+  set generating(value) {
     if (this.#generating === value) return
     if (value) this.startGenerating()
     else this.stopGenerating()
@@ -164,7 +164,11 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async snapshot(): Promise<void> {
+    // console.log(performance.now(), 'snapshot')
+
     await scopedLock(this.#lock, () => {
+      // console.log(performance.now(), 'snapshot scoped')
+
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
       this.#heatmap = Array(this.rows)
@@ -261,10 +265,14 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async startGenerating() {
+    console.log(performance.now(), 'start')
+
     // Restart if already generating
     if (this.#generating) await this.stopGenerating()
 
     await scopedLock(this.#lock, () => {
+      console.log(performance.now(), 'start scoped')
+
       this.#generating = true
       this.generationStartTs = performance.now()
       this.resetHeatmap()
@@ -273,10 +281,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         id: this.#mainDataLive[JOB_ID],
         rows: this.rows,
         cols: this.cols,
-        boatLengths: this.boatLengths,
+        boatLengths: Uint8Array.from(this.boatLengths),
         boatsSunken: this.boatsSunken,
         allowTouching: this.allowTouching,
-        grid: this.grid,
+        grid: this.grid.map((row) => Uint8Array.from(row)),
       }
     })
 
@@ -294,12 +302,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async stopGenerating() {
+    console.log(performance.now(), 'stop')
+
     await scopedLock(this.#lock, () => {
+      console.log(performance.now(), 'stop scoped')
+
       this.#generating = false
       this.jobData = null
 
       // Stop workers
-      console.log('new job', new Error().stack)
       Atomics.add(this.#mainDataLive, JOB_ID, 1)
 
       clearTimeout(this.generationTimeoutId)

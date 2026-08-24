@@ -25,6 +25,8 @@ const index = (row: number, col: number) => row * stride + col
 
 let boatPlaceAttempts: number
 
+let grid: Grid
+
 const onresult = (callback: () => void) => {
   lock.lockShared()
   try {
@@ -56,16 +58,33 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   stride = data.cols
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
 
+  grid = data.grid.map((row) => new Uint8Array(row.length))
+
   // Keep generating until the main thread increases JOB_ID
   while (Atomics.load(mainData, JOB_ID) === data.id) {
-    generateConfig(structuredClone(data.grid))
+    for (let y = 0; y < data.grid.length; y++) grid[y].set(data.grid[y])
+    generateConfig(grid)
   }
 }
+
+// function cloneGrid(inGrid: number[][]): number[][] {
+//   const height = inGrid.length
+//   const width = height === 0 ? 0 : inGrid[0].length
+//   const outGrid = new Array(height)
+
+//   for (let y = 0; y < height; y++) {
+//     const inRow = inGrid[y]
+//     const outRow = new Array(width)
+//     for (let x = 0; x < width; x++) outRow[x] = inRow[x]
+//     outGrid[y] = outRow
+//   }
+//   return outGrid
+// }
 
 function generateConfig(grid: Grid): void {
   const bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
 
-  const boatLengths = structuredClone(data.boatLengths)
+  const boatLengths = data.boatLengths.slice()
   const boatsPlaced: Boat[] = []
 
   // Fisher-Yates shuffle
@@ -88,6 +107,11 @@ function generateConfig(grid: Grid): void {
 
     let boatPlaced = false
 
+    // TODO: strongly reduce boatPlaceAttempts heuristic and if !boatPlaced, use 2d loop to try every position sequentially
+    // boatPlaceAttempts should also include the total amount of boat cells to determine the heuristic,
+    // more boats = less chance of finding an empty spot by chance
+    // first boat = 100% chance of finding an empty spot by chance on the first try
+    // last boat = possibly no empty spots left due to an inefficient configuration of the other boats
     for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
       // The chances of placing a boat horizontally vs vertically should be proportional to the amount of cells it can be placed in that direction.
       const vertical = !(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
@@ -112,7 +136,7 @@ function generateConfig(grid: Grid): void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      onresult(() => mainData[workerDataOffset + ATTEMPTS]++)
+      onresult(() => workerData[workerDataOffset + ATTEMPTS]++)
       return
     }
   }
@@ -127,7 +151,7 @@ function generateConfig(grid: Grid): void {
 
       // Mission failed, we'll get 'em next time
       if (boatExpected && !boat) {
-        onresult(() => mainData[workerDataOffset + ATTEMPTS]++)
+        onresult(() => workerData[workerDataOffset + ATTEMPTS]++)
         return
       }
     }
