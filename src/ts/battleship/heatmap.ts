@@ -32,7 +32,7 @@ export const scopedLock = async (lock: SharedExclusiveLock, callback: () => void
 }
 
 export default class BattleshipHeatmap extends BattleshipGrid {
-  #threads = Math.max(1, navigator.hardwareConcurrency)
+  #threads = Math.max(1, navigator.hardwareConcurrency - 1)
   #workers: Worker[] = Array(this.#threads)
   #lock = new SharedExclusiveLock()
 
@@ -240,10 +240,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super.resize(rows, cols)
 
     this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
-
-    const newByteLength = this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads
-    const oldByteLength = this.#heatmapLive.byteLength
-    if (newByteLength > oldByteLength) this.#heatmapLive.buffer.grow(newByteLength)
+    this.#heatmapLive = new Uint32Array(
+      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
+    )
 
     this.attempts = 0
     this.success = 0
