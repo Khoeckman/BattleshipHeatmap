@@ -37,10 +37,6 @@
     color: var(--c24);
     width: 2.5rem;
     height: 2.5rem;
-    transition:
-      background-color 125ms,
-      border-color 125ms,
-      color 125ms;
 
     &:hover,
     &:focus-visible {

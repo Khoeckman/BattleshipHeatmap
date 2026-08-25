@@ -51,7 +51,6 @@ export default class BattleshipIO {
   public cursor = { row: 0, col: 0 }
 
   #frameHandle = -1
-  #lastFrameTs = 0
   #frameController: AbortController = new AbortController()
 
   constructor(
@@ -93,7 +92,12 @@ export default class BattleshipIO {
       this.updateGenerateButton()
       cancelAnimationFrame(this.#frameHandle)
     }
-    const onFinishGenerating = () => this.renderHeatmap()
+    const onFinishGenerating = () => {
+      this.renderHeatmap()
+      this.gridEl.classList.add('restart-hotspot-animation')
+      void this.gridEl.offsetWidth
+      this.gridEl.classList.remove('restart-hotspot-animation')
+    }
 
     this.heatmap = new BattleshipHeatmap(
       grid,
@@ -222,7 +226,7 @@ export default class BattleshipIO {
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
     // Slowly rise from 98% to 100% the more successful configurations have been accumulated
-    const hotspotMargin = 0.98 + 0.02 * (1 - Math.min(1, 1 / (this.heatmap.success / 20_000)) ** 0.3)
+    const hotspotMargin = 0.995
     const hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
     minHeat *= 0.9
@@ -272,10 +276,6 @@ export default class BattleshipIO {
 
     this.heat.hotspots = hotspots
 
-    // this.gridEl.classList.add('restart-hotspot-animation')
-    // void this.gridEl.offsetWidth
-    // this.gridEl.classList.remove('restart-hotspot-animation')
-
     this.renderGenerationInfo(false)
   }
 
@@ -285,13 +285,6 @@ export default class BattleshipIO {
     if (this.heatmap.generating) {
       this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
     }
-
-    // Calculate if a heatmap update may be queued
-    const now = performance.now()
-    const minFrameTimeMs = Math.min(250, (this.heatmap.rows * this.heatmap.cols) / 2.5)
-
-    if (this.heatmap.generating && now - this.#lastFrameTs < minFrameTimeMs) return
-    this.#lastFrameTs = now
 
     // Cancel the pending frame as its data is outdated
     this.#frameController.abort()
