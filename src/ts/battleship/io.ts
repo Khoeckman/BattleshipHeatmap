@@ -258,6 +258,9 @@ export default class BattleshipIO {
         const cellEl = rowEls[col]
         const isCursor = row === this.cursor.row && col === this.cursor.col
 
+        // Todo: check if class name needs to be changed.
+        // Javascript invalidates the CSS rules if you write the same class to an element...
+        // This should reduce most forced reflow overhead on the UI thread
         if (!heat) {
           cellEl.classList.value = isCursor ? 'cell cursor' : 'cell'
           continue
