@@ -316,8 +316,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   #createWorker(workerIndex: number) {
-    if (this.#workers[workerIndex]) return
-    this.#workers[workerIndex] = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
+    this.#workers[workerIndex] ||= new Worker(new URL('../worker/generateConfig.ts', import.meta.url), {
+      type: 'module',
+    })
     this.#updateWorker(workerIndex)
   }
 
@@ -344,7 +345,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       t < this.#threads;
       t++, workerDataOffset += this.#workerDataSegmentSize, heatmapOffset += this.#heatmapSegmentSize
     ) {
-      callback(t, workerDataOffset, heatmapOffset)
+      callback.call(this, t, workerDataOffset, heatmapOffset)
     }
   }
 }
