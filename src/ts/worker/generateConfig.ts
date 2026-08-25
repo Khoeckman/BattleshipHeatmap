@@ -25,7 +25,6 @@ let bitmap: Uint8Array
 
 let boatsPlaced: Boat[] = []
 let boatPlaceAttempts: number
-let index: (row: number, col: number) => number
 
 const onresult = (callback: () => void) => {
   lock.lockShared()
@@ -59,7 +58,6 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
 
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
-  index = (row: number, col: number) => row * data.cols + col
 
   // Keep generating until the main thread increases JOB_ID
   while (Atomics.load(mainData, JOB_ID) === data.id) {
@@ -153,7 +151,7 @@ function generateConfig(grid: Grid): void {
     // PERFORMANCE: ~10% of resources go to here
     for (const boat of boatsPlaced) {
       BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-        heatmap[heatmapOffset + index(row, col)]++
+        heatmap[heatmapOffset + row * data.cols + col]++
       })
     }
   })
@@ -179,7 +177,7 @@ function canPlaceBoat(grid: Grid, bitmap: Uint8Array, boat: Boat): boat is Place
 
   // Disallow placing the boat on another boat or on a MISS clue
   for (let segment = 0; segment < boat.length; segment++) {
-    if (bitmap[index(row, col)] || grid[row][col] === BattleshipHeatmap.MISS) return false
+    if (bitmap[row * data.cols + col] || grid[row][col] === BattleshipHeatmap.MISS) return false
     row += dr
     col += dc
   }
@@ -219,7 +217,7 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
   }
 
   BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
-    bitmap[index(row, col)] = 1
+    bitmap[row * data.cols + col] = 1
     grid[row][col] = BattleshipHeatmap.SUNK
   })
   return true

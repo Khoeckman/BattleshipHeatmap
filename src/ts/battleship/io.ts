@@ -266,7 +266,7 @@ export default class BattleshipIO {
 
         const heatDiff = maxHeat - minHeat
         const normalizedHeat = !heatDiff ? 0.5 : (heat - minHeat) / (maxHeat - minHeat)
-        cellEl.style.setProperty('--lightness', String(50 + (1 - Math.sqrt(normalizedHeat)) * 50))
+        cellEl.style.setProperty('--lightness', '' + (50 + (1 - Math.sqrt(normalizedHeat)) * 50))
       }
     }
 
