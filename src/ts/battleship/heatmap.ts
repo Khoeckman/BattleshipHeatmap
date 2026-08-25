@@ -111,9 +111,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     this.#onFinishGenerating = onFinishGenerating
 
-    for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++) {
-      this.#createWorker(workerIndex)
-    }
+    this.#forEachThread(this.#createWorker)
     this.snapshot()
   }
 
@@ -132,7 +130,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set attempts(value) {
-    this.#forEachThread((workerDataOffset) => {
+    this.#forEachThread((_, workerDataOffset) => {
       Atomics.store(this.#workerDataLive, workerDataOffset + ATTEMPTS, value)
     })
     this.#workerData[ATTEMPTS] = value
@@ -143,7 +141,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   set success(value) {
-    this.#forEachThread((workerDataOffset) => {
+    this.#forEachThread((_, workerDataOffset) => {
       Atomics.store(this.#workerDataLive, workerDataOffset + SUCCESSES, value)
     })
     this.#workerData[SUCCESSES] = value
@@ -173,7 +171,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         .fill(0)
         .map(() => Array(this.cols).fill(0))
 
-      this.#forEachThread((workerDataOffset, heatmapOffset) => {
+      this.#forEachThread((_, workerDataOffset, heatmapOffset) => {
         this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
         this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
 
@@ -245,6 +243,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.attempts = 0
     this.success = 0
     this.jobData = null
+
+    // Reference to this.#heatmapLive changed
+    this.#forEachThread(this.#updateWorker)
   }
 
   reset(): void {
@@ -285,9 +286,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       }
     })
 
-    for (let workerIndex = 0; workerIndex < this.#threads; workerIndex++) {
-      this.#workers[workerIndex].postMessage({ ...this.jobData })
-    }
+    this.#forEachThread(this.#startWorker)
 
     // Keep generating until timeout expires
     this.generationTimeoutId = setTimeout(() => {
@@ -316,10 +315,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     })
   }
 
-  #createWorker(workerIndex: number): Worker {
-    if (this.#workers[workerIndex]) return this.#workers[workerIndex]
+  #createWorker(workerIndex: number) {
+    if (this.#workers[workerIndex]) return
+    this.#workers[workerIndex] = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
+    this.#updateWorker(workerIndex)
+  }
 
-    const worker = new Worker(new URL('../worker/generateConfig.ts', import.meta.url), { type: 'module' })
+  #updateWorker(workerIndex: number) {
     const sharedData: SharedData = {
       workerIndex,
       lock: this.#lock,
@@ -329,19 +331,20 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       workerDataSegmentSize: this.#workerDataSegmentSize,
       heatmapSegmentSize: this.#heatmapSegmentSize,
     }
-    worker.postMessage(sharedData)
-
-    this.#workers[workerIndex] = worker
-    return worker
+    this.#workers[workerIndex].postMessage(sharedData)
   }
 
-  #forEachThread(callback: (workerDataOffset: number, heatmapOffset: number) => void) {
+  #startWorker(workerIndex: number) {
+    this.#workers[workerIndex].postMessage({ ...this.jobData })
+  }
+
+  #forEachThread(callback: (threadIndex: number, workerDataOffset: number, heatmapOffset: number) => void) {
     for (
       let t = 0, workerDataOffset = 0, heatmapOffset = 0;
       t < this.#threads;
       t++, workerDataOffset += this.#workerDataSegmentSize, heatmapOffset += this.#heatmapSegmentSize
     ) {
-      callback(workerDataOffset, heatmapOffset)
+      callback(t, workerDataOffset, heatmapOffset)
     }
   }
 }
