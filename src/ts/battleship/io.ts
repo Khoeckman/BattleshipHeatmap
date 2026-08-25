@@ -320,14 +320,14 @@ export default class BattleshipIO {
       maximumSignificantDigits: 3,
       maximumFractionDigits: 2,
     }).format(this.heatmap.attempts)
-    this.dataEls.attemptsData.title = String(this.heatmap.attempts)
+    this.dataEls.attemptsData.title = Intl.NumberFormat('nl-BE').format(this.heatmap.attempts)
 
     this.dataEls.configsData.textContent = Intl.NumberFormat('en-US', {
       notation: 'compact',
       maximumSignificantDigits: 3,
       maximumFractionDigits: 2,
     }).format(this.heatmap.success)
-    this.dataEls.configsData.title = String(this.heatmap.success)
+    this.dataEls.configsData.title = Intl.NumberFormat('nl-BE').format(this.heatmap.success)
   }
 
   renderCursor(): void {
