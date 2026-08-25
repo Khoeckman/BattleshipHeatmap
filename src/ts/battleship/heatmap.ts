@@ -23,12 +23,10 @@ export type JobData = {
 }
 
 export const scopedLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
-  await lock.lockExclusive()
-  try {
-    callback()
-  } finally {
-    lock.unlockExclusive()
-  }
+  lock
+    .lockExclusive()
+    .then(() => callback())
+    .finally(() => lock.unlockExclusive())
 }
 
 export default class BattleshipHeatmap extends BattleshipGrid {
@@ -166,7 +164,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   async snapshot(): Promise<void> {
     // console.log(performance.now(), 'snapshot')
 
-    await scopedLock(this.#lock, () => {
+    scopedLock(this.#lock, () => {
       // console.log(performance.now(), 'snapshot scoped')
 
       this.#workerData[ATTEMPTS] = 0
@@ -303,7 +301,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   async stopGenerating() {
     console.log(performance.now(), 'stop')
 
-    await scopedLock(this.#lock, () => {
+    scopedLock(this.#lock, () => {
       console.log(performance.now(), 'stop scoped')
 
       this.#generating = false
