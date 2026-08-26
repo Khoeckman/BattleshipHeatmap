@@ -21,7 +21,7 @@ find out how to handle a square of sunken boats when allow touching is on
 
 [V] When a modifier is down, ignore the keypress
 
-[V] Allow multiple hot spots (green) if chances are very close within min-max range
+[V] Allow multiple hot spots (green) if heat values are very close within min-max range
 
 [V] style mobile buttons / create context menu
 
@@ -39,7 +39,7 @@ accumulateHeatmap:
 [V] Instead of counting S (sunken) as H (hit), sunken boats should be taken out of the randomly placed boats AND should be surrounded with water
 OR the boats should be placed on the S's, whichever is more performant
 
-[ ] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
+[?] fix bug where 17 attempts, 1 succes and 0 output. Likely its not processing workers properly after the timer is done and something else.
 
 [ ] fix UI Bug: Pressing enter in an input field twice causes UI to show as if it stopped generating, until the generation timer finishes and updates the heatmap at once proving it was generating the whole time.
 
@@ -51,7 +51,9 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [V] create workers once and store them instead of closing and recreating them, in an attempt to lose less time at the beginning of the generation process.
 
-[ ] make a proper shared lock so snapshot() does not copy data thats being mutated by the workers, which causes a race condition
+[V] make a proper shared lock so snapshot() does not copy data thats being mutated by the workers, which causes a race condition
+
+[ ] Change styling of HIT and SUNK so square remains
 
 ## Nice to have
 
