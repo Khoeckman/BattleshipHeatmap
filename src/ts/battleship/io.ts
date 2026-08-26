@@ -39,6 +39,14 @@ export default class BattleshipIO {
     5: 'Carrier',
   }
 
+  private static enUS_compact = Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumSignificantDigits: 3,
+    maximumFractionDigits: 2,
+  })
+
+  private static fullNumberFormat = Intl.NumberFormat('nl-BE')
+
   public boatsSunkenError: BoatsTooManyError | null = null
 
   public settingsStore: HyperStorage<Settings>
@@ -200,6 +208,15 @@ export default class BattleshipIO {
     this.renderCursor()
   }
 
+  scheduleRenderHeatmap() {
+    this.renderGenerationInfo()
+
+    if (this.heatmap.generating) {
+      this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
+    }
+    this.renderHeatmap()
+  }
+
   private heat: HeatCache = { els: [], state: [], hotspots: [] }
 
   #getHeatCache(): HeatCache {
@@ -256,24 +273,24 @@ export default class BattleshipIO {
         rowHeatState[col] = heatString
 
         const cellEl = rowEls[col]
+        let cellElClassList = cellEl.classList.value
         const isCursor = row === this.cursor.row && col === this.cursor.col
 
-        // Todo: check if class name needs to be changed.
-        // Javascript invalidates the CSS rules if you write the same class to an element...
-        // This should reduce most forced reflow overhead on the UI thread
         if (!heat) {
-          cellEl.classList.value = isCursor ? 'cell cursor' : 'cell'
-          continue
+          cellElClassList = isCursor ? 'cell cursor' : 'cell'
+        } else {
+          cellEl.textContent = heatString
+          cellElClassList = 'cell heat'
+
+          if (isCursor) cellElClassList += ' cursor'
+          if (isHotspot) cellElClassList += ' hotspot'
+
+          const heatDiff = maxHeat - minHeat
+          const normalizedHeat = !heatDiff ? 0.5 : (heat - minHeat) / (maxHeat - minHeat)
+          cellEl.style.setProperty('--lightness', '' + (50 + (1 - Math.sqrt(normalizedHeat)) * 50))
         }
-        cellEl.textContent = heatString
-        cellEl.classList.value = 'cell chance'
 
-        if (isCursor) cellEl.classList.add('cursor')
-        if (isHotspot) cellEl.classList.add('hotspot')
-
-        const heatDiff = maxHeat - minHeat
-        const normalizedHeat = !heatDiff ? 0.5 : (heat - minHeat) / (maxHeat - minHeat)
-        cellEl.style.setProperty('--lightness', '' + (50 + (1 - Math.sqrt(normalizedHeat)) * 50))
+        if (cellEl.classList.value !== cellElClassList) cellEl.classList.value = cellElClassList
       }
     }
 
@@ -282,48 +299,19 @@ export default class BattleshipIO {
     this.renderGenerationInfo(false)
   }
 
-  async scheduleRenderHeatmap(): Promise<void> {
-    this.renderGenerationInfo()
-
-    if (this.heatmap.generating) {
-      this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
-    }
-
-    // Cancel the pending frame as its data is outdated
-    this.#frameController.abort()
-    this.#frameController = new AbortController()
-
-    scheduler
-      .postTask(() => this.renderHeatmap(), {
-        priority: 'user-visible',
-        signal: this.#frameController.signal,
-      })
-      .catch((err) => {
-        if (err.name !== 'AbortError') throw err
-      })
-  }
-
   async renderGenerationInfo(snapshot = true): Promise<void> {
     if (snapshot) await this.heatmap.snapshot()
 
     const generationTimeMs = performance.now() - this.heatmap.generationStartTs
 
     // Convert to seconds with one decimal
-    this.dataEls.timeData.innerText = (generationTimeMs / 1000).toFixed(1) + 's'
+    this.dataEls.timeData.textContent = (generationTimeMs / 1000).toFixed(1) + 's'
 
-    this.dataEls.attemptsData.textContent = Intl.NumberFormat('en-US', {
-      notation: 'compact',
-      maximumSignificantDigits: 3,
-      maximumFractionDigits: 2,
-    }).format(this.heatmap.attempts)
-    this.dataEls.attemptsData.title = Intl.NumberFormat('nl-BE').format(this.heatmap.attempts)
+    this.dataEls.attemptsData.textContent = BattleshipIO.enUS_compact.format(this.heatmap.attempts)
+    this.dataEls.attemptsData.title = BattleshipIO.fullNumberFormat.format(this.heatmap.attempts)
 
-    this.dataEls.configsData.textContent = Intl.NumberFormat('en-US', {
-      notation: 'compact',
-      maximumSignificantDigits: 3,
-      maximumFractionDigits: 2,
-    }).format(this.heatmap.success)
-    this.dataEls.configsData.title = Intl.NumberFormat('nl-BE').format(this.heatmap.success)
+    this.dataEls.configsData.textContent = BattleshipIO.enUS_compact.format(this.heatmap.success)
+    this.dataEls.configsData.title = BattleshipIO.fullNumberFormat.format(this.heatmap.success)
   }
 
   renderCursor(): void {
