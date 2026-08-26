@@ -1,8 +1,6 @@
 @use '../mixins.scss' as *;
 
 #grid {
-  // @include root;
-
   background-color: var(--bg);
   border: 1px solid var(--border);
   border-radius: 0.5rem;
@@ -34,7 +32,7 @@
     outline-color: var(--pri);
     font-size: 1.5rem;
     font-weight: bold;
-    color: var(--c24);
+    color: var(--c12);
     width: 2.5rem;
     height: 2.5rem;
 
@@ -45,28 +43,21 @@
     }
 
     &.sunk {
-      background-color: var(--c72);
-      color: var(--bg);
-      color: contrast-color(var(--c72));
+      background-color: var(--sunk-bg);
+      color: var(--sunk);
     }
 
     &.hit {
-      background-color: var(--error);
-      color: var(--bg);
-      color: contrast-color(var(--error));
+      background-color: var(--hit-bg);
+      color: var(--hit);
     }
 
     &.miss {
-      background-color: #e2f2ff;
-
-      @media (prefers-color-scheme: dark) {
-        background-color: #00111f;
-      }
-
-      color: var(--pri);
+      background-color: var(--miss-bg);
+      color: var(--miss);
     }
 
-    &.chance {
+    &.heat {
       --background: hsl(var(--hue), 100%, calc(var(--lightness) * 1%));
 
       @media (prefers-color-scheme: dark) {
@@ -76,7 +67,7 @@
       background-color: var(--background);
       font-size: 0.8rem;
       line-height: 0.8;
-      color: contrast-color(var(--background));
+      color: var(--fg);
     }
 
     &.hotspot {
@@ -101,13 +92,25 @@
       outline-offset: -1px;
       box-shadow: inset 0 0 0.25rem var(--bg);
 
-      &.hit,
-      &.chance {
+      &.sunk {
+        outline-color: var(--sunk);
+      }
+
+      &.hit {
+        outline-color: var(--hit);
+      }
+
+      &.miss {
+        outline-color: var(--miss);
+      }
+
+      &.heat {
         outline-color: var(--fg);
       }
 
       &.hotspot {
-        outline-color: gold;
+        outline-color: var(--success);
+        outline-offset: -2px;
       }
     }
 

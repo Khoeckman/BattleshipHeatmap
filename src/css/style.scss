@@ -9,15 +9,42 @@
 @use 'credits.scss';
 
 :root {
-  @include root;
+  --black: hsl(var(--hue), 20%, 8%);
+  --white: hsl(var(--hue), 20%, 96%);
+  --success: #3f3;
+  --error: #f33;
 
-  color-scheme: light dark;
-}
+  --bg: var(--white);
+  --fg: var(--black);
 
-@media (prefers-color-scheme: dark) {
-  :root {
+  --hue: 210;
+  --pri: hsl(var(--hue), 100%, 62%);
+  --pri-bg: #e2f2ff;
+
+  --sunk: var(--error);
+  --sunk-bg: #ffe2f2;
+  --hit: var(--fg);
+  --hit-bg: hsl(var(--hue), 100%, 50%);
+  --miss: var(--pri);
+  --miss-bg: var(--pri-bg);
+
+  --c0: #fff;
+  --c12: hsl(var(--hue), 20%, 88%);
+  --c24: hsl(var(--hue), 20%, 76%);
+  --c48: hsl(var(--hue), 20%, 52%);
+  --c72: hsl(var(--hue), 20%, 28%);
+
+  --border: #00000008;
+
+  @media (prefers-color-scheme: dark) {
     --bg: var(--black);
     --fg: var(--white);
+
+    --pri-bg: #00111f;
+
+    --sunk-bg: #1f1100;
+    --hit-bg: hsl(var(--hue), 100%, 47%);
+    --miss-bg: var(--pri-bg);
 
     --c0: #000;
     --c12: hsl(var(--hue), 20%, 12%);
@@ -27,6 +54,8 @@
 
     --border: #ffffff08;
   }
+
+  color-scheme: light dark;
 }
 
 html {
