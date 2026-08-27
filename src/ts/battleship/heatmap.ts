@@ -160,11 +160,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async snapshot(): Promise<void> {
-    console.log(performance.now(), 'snapshot')
-
     await scopedLock(this.#lock, () => {
-      console.log(performance.now(), 'snapshot scoped')
-
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
       this.#heatmap = Array(this.rows)

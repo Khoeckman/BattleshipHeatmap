@@ -43,8 +43,8 @@
   }
 
   .project {
-    background-color: var(--c12);
-    border: 1px solid var(--c24);
+    background-color: var(--l1);
+    border: 1px solid var(--l2);
     border-radius: 0.5rem;
     box-shadow: 0 0 1rem var(--bg);
     text-align: left;
@@ -87,7 +87,7 @@
   }
 
   .project .date {
-    color: var(--c72);
+    color: var(--l6);
   }
 
   @media (width < 45em) {

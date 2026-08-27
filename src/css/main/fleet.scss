@@ -16,7 +16,7 @@
     border-radius: 9rem;
 
     div {
-      background-color: var(--c72);
+      background-color: var(--l6);
       border: 1px solid var(--bg);
       width: 1.5rem;
       height: 1.5rem;
@@ -33,7 +33,7 @@
     }
 
     &.sunk div {
-      background-color: var(--c24);
+      background-color: var(--l2);
     }
 
     &:not(.sunk):hover div {
