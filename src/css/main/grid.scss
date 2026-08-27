@@ -60,6 +60,10 @@
       background-color: var(--hit-bg);
       color: var(--hit);
 
+      &:hover {
+        border-color: var(--l6);
+      }
+
       &.cursor {
         outline-color: var(--hit);
       }
@@ -84,6 +88,10 @@
       font-size: 0.8rem;
       line-height: 0.8;
       color: var(--fg);
+
+      &:hover {
+        border-color: var(--l6);
+      }
 
       &.cursor {
         outline-color: var(--fg);
