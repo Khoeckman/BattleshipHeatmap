@@ -17,43 +17,21 @@ export const alignToCacheLine = (elements: number, arrayConstructor?: { readonly
  * {@link Atomics.compareExchange} — writers and readers can never observe
  * (or produce) a state where the two counts disagree with reality.
  */
-const READER_COUNT_MASK = 0x00ffffff
-const WRITER_COUNT_MASK = 0xff000000
-const WRITER_COUNT_UNIT = 0x01000000 // one writer
+const READER_COUNT_MASK = 0x0000ffff
+const WRITER_COUNT_MASK = 0xffff0000
+const WRITER_COUNT_UNIT = 0x00010000 // one writer
 
 /**
- * A group-mutual-exclusion lock for coordinating "main" (writer) and
- * "worker" (reader) access to a `SharedArrayBuffer`.
+ * A group-mutual-exclusion lock for coordinating "main" and "worker"
+ * access to a `SharedArrayBuffer`.
  *
  * Compatibility matrix:
  * ```
- *          write   read
- * write      ✓      ✗
- * read       ✗      ✓
+ *            main    worker
+ * main        ✓        ✗
+ * worker      ✗        ✓
  * ```
  * Same-mode holders never block each other; the two modes always do.
- * Concretely:
- * - Any number of main-side call sites can hold the lock via
- *   {@link lockExclusive} at once. There is no "sole owner" invariant —
- *   if your protected work isn't safe to interleave with itself, that
- *   safety has to come from the caller, not this lock.
- * - Any number of workers can hold {@link lockShared} at once.
- * - Once at least one writer has called {@link lockExclusive}, no new
- *   reader can start, even if that writer is still draining existing
- *   readers (write-preferring, to avoid writer starvation).
- * - A reader that already holds the lock is never preempted; it keeps it
- *   until it calls {@link unlockShared}.
- * - As soon as the reader count hits zero while a writer is
- *   waiting, that writer (and any other writer waiting alongside it)
- *   proceeds immediately.
- *
- * ### Threading model
- * `Atomics.wait` cannot be called on a JS engine's main/UI thread — it
- * throws. This lock assumes **main runs on such a thread**, so
- * {@link lockExclusive} is async, built on `Atomics.waitAsync`. Workers
- * are assumed to run on threads where blocking is fine (Web Workers,
- * `worker_threads`), so {@link lockShared} and {@link unlockShared} are
- * synchronous. `unlockExclusive` never needs to wait, so it stays sync too.
  *
  * `Atomics.waitAsync` needs a reasonably modern runtime (Node 16+,
  * Chromium 87+, Firefox 96+, Safari 16.4+) and `"lib": ["es2021"]` or
@@ -61,10 +39,10 @@ const WRITER_COUNT_UNIT = 0x01000000 // one writer
  *
  * ### Usage
  * ```ts
- * // main thread — any number of call sites can do this concurrently
+ * // main thread
  * await lock.lockExclusive()
  * try {
- *   // ...write work, safe to interleave with other write work...
+ *   // Do main thread stuff...
  * } finally {
  *   lock.unlockExclusive()
  * }
@@ -73,7 +51,7 @@ const WRITER_COUNT_UNIT = 0x01000000 // one writer
  * // worker thread
  * lock.lockShared()
  * try {
- *   // ...read work...
+ *   // Do worker thread stuff...
  * } finally {
  *   lock.unlockShared()
  * }
