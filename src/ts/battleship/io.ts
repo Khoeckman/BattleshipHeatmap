@@ -59,7 +59,6 @@ export default class BattleshipIO {
   public cursor = { row: 0, col: 0 }
 
   #frameHandle = -1
-  #frameController: AbortController = new AbortController()
 
   constructor(
     settingsStore: HyperStorage<Settings>,
@@ -96,10 +95,7 @@ export default class BattleshipIO {
     const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching, settings.grid)
 
     const onStartGenerating = () => this.updateGenerateButton()
-    const onStopGenerating = () => {
-      this.updateGenerateButton()
-      cancelAnimationFrame(this.#frameHandle)
-    }
+    const onStopGenerating = () => this.updateGenerateButton()
     const onFinishGenerating = () => {
       this.renderHeatmap()
       this.gridEl.classList.add('restart-hotspot-animation')
@@ -237,7 +233,8 @@ export default class BattleshipIO {
   async renderHeatmap(): Promise<void> {
     await this.heatmap.snapshot()
 
-    // console.log(performance.now(), 'render')
+    // The event loop has possibly altered this.heatmap.grid, so the results are invalid
+    if (!this.heatmap.generating) return
 
     const { els: heatEls, state: heatState } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
@@ -397,13 +394,13 @@ export default class BattleshipIO {
       return
     }
 
-    // TODO: what does this archieve? Add comment when I find out again
+    // Prevent creating multiple schedule loops in series
     cancelAnimationFrame(this.#frameHandle)
-    this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
 
     await this.heatmap.startGenerating()
-
     this.renderGrid()
+
+    this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
   }
 
   #handleClick(e: PointerEvent): void {

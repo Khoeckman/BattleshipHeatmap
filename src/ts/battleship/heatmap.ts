@@ -23,7 +23,7 @@ export type JobData = {
 }
 
 export const scopedLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
-  lock
+  await lock
     .lockExclusive()
     .then(() => callback())
     .finally(() => lock.unlockExclusive())
@@ -160,10 +160,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async snapshot(): Promise<void> {
-    // console.log(performance.now(), 'snapshot')
+    console.log(performance.now(), 'snapshot')
 
-    scopedLock(this.#lock, () => {
-      // console.log(performance.now(), 'snapshot scoped')
+    await scopedLock(this.#lock, () => {
+      console.log(performance.now(), 'snapshot scoped')
 
       this.#workerData[ATTEMPTS] = 0
       this.#workerData[SUCCESSES] = 0
@@ -263,16 +263,12 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async startGenerating() {
-    console.log(performance.now(), 'start')
-
     // Restart if already generating
     if (this.#generating) await this.stopGenerating()
 
-    await scopedLock(this.#lock, () => {
-      console.log(performance.now(), 'start scoped')
+    this.#generating = true
 
-      this.#generating = true
-      this.generationStartTs = performance.now()
+    await scopedLock(this.#lock, () => {
       this.resetHeatmap()
 
       this.jobData = {
@@ -287,6 +283,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     })
 
     this.#forEachThread(this.#startWorker)
+    this.generationStartTs = performance.now()
 
     // Keep generating until timeout expires
     this.generationTimeoutId = setTimeout(() => {
@@ -298,21 +295,15 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   }
 
   async stopGenerating() {
-    console.log(performance.now(), 'stop')
+    this.#generating = false
+    this.jobData = null
 
-    scopedLock(this.#lock, () => {
-      console.log(performance.now(), 'stop scoped')
-
-      this.#generating = false
-      this.jobData = null
-
+    await scopedLock(this.#lock, () => {
       // Stop workers
       Atomics.add(this.#mainDataLive, JOB_ID, 1)
-
-      clearTimeout(this.generationTimeoutId)
-
-      this.#onStopGenerating()
     })
+    clearTimeout(this.generationTimeoutId)
+    this.#onStopGenerating()
   }
 
   #createWorker(workerIndex: number) {
