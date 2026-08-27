@@ -1,7 +1,6 @@
 import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
 import { SharedExclusiveLock } from '../memory'
 import type { Boat, PlaceableBoat } from '../battleship/grid'
-import BattleshipGrid from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
 type Grid = NonNullable<JobData['grid']>
@@ -50,6 +49,9 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 
   data = e.data
   if (!data.grid) return
+
+  // TODO: for performance reasons, mark all cells around boats with MISS on data.grid once before starting the loop
+  // data.grid = todo(data.grid)
 
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
@@ -148,9 +150,9 @@ function generateConfig(grid: Grid): void {
     workerData[workerDataOffset + ATTEMPTS]++
     workerData[workerDataOffset + SUCCESSES]++
 
-    // PERFORMANCE: ~10% of resources go to here
+    // PERFORMANCE: ~10% of resources are spent here
     for (const boat of boatsPlaced) {
-      BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+      forEachBoatSegment(boat, (row, col) => {
         heatmap[heatmapOffset + row * data.cols + col]++
       })
     }
@@ -216,9 +218,29 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
     }
   }
 
-  BattleshipGrid.forEachBoatSegment(boat, (row, col) => {
+  forEachBoatSegment(boat, (row, col) => {
     bitmap[row * data.cols + col] = 1
     grid[row][col] = BattleshipHeatmap.SUNK
   })
   return true
+}
+
+// Implement locally for JIT and GC optimization reasons
+let row: number
+let col: number
+let dr: number
+let dc: number
+let segment: number
+
+function forEachBoatSegment(boat: Boat, callback: (row: number, col: number) => void): void {
+  row = boat.row
+  col = boat.col
+  dr = +boat.vertical
+  dc = +!boat.vertical
+
+  for (segment = 0; segment < boat.length; segment++) {
+    callback(row, col)
+    row += dr
+    col += dc
+  }
 }

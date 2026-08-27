@@ -12,19 +12,6 @@ export default class BattleshipGrid {
   public static readonly MAX_COLS = 26
   public static readonly MAX_LENGTH = Math.max(this.MAX_ROWS, this.MAX_COLS)
 
-  public static forEachBoatSegment(boat: Boat, callback: (row: number, col: number) => void): void {
-    let row = boat.row
-    let col = boat.col
-    let dr = +boat.vertical
-    let dc = +!boat.vertical
-
-    for (let segment = 0; segment < boat.length; segment++) {
-      callback(row, col)
-      row += dr
-      col += dc
-    }
-  }
-
   #rows = 0
   #cols = 0
   #boatLengths: number[] = []
