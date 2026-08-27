@@ -236,12 +236,15 @@ export default class BattleshipIO {
     // The event loop has possibly altered this.heatmap.grid, so the results are invalid
     if (!this.heatmap.generating) return
 
-    const { els: heatEls, state: heatState } = this.#getHeatCache()
+    const { els: heatEls, state: heatCache } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
     // Slowly rise from 98% to 100% the more successful configurations have been accumulated
     const hotspotMargin = 0.995
-    const hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
+    let hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
+
+    // Don't highlight the hotspots if there are too many
+    if (hotspots.length > Math.sqrt(this.heatmap.rows * this.heatmap.cols)) hotspots = [this.heatmap.getHottest()]
 
     minHeat *= 0.9
     maxHeat *= 1.1
@@ -252,7 +255,7 @@ export default class BattleshipIO {
 
     for (let row = 0; row < heatEls.length; row++) {
       const rowEls = heatEls[row]
-      const rowHeatState = heatState[row]
+      const rowHeatCache = heatCache[row]
 
       for (let col = 0; col < rowEls.length; col++) {
         if (this.heatmap.getCell(row, col) !== 0) continue
@@ -262,12 +265,11 @@ export default class BattleshipIO {
         const isHotspot = checkHotspot(hotspots, row, col)
 
         // Cache heat values and skip if the value remained the same
-        if (rowHeatState[col] === heatString) {
-          // If its a hotspot it must have been cached already
-          if (!isHotspot || checkHotspot(this.heat.hotspots, row, col)) continue
+        if (rowHeatCache[col] === heatString) {
+          // If it is a hotspot it must have been cached already
+          if (isHotspot === checkHotspot(this.heat.hotspots, row, col)) continue
         }
-
-        rowHeatState[col] = heatString
+        rowHeatCache[col] = heatString
 
         const cellEl = rowEls[col]
         let cellElClassList = cellEl.classList.value

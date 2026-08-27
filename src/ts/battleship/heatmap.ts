@@ -209,6 +209,26 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     return { min, max }
   }
 
+  getHottest(): { row: number; col: number } {
+    let hotspot: { row: number; col: number } = { row: 0, col: 0 }
+    let minHotspotHeat = 0
+
+    for (let row = 0; row < this.rows; row++) {
+      for (let col = 0; col < this.cols; col++) {
+        // SUNK || HIT
+        if (this.grid[row][col] & 3) continue
+
+        const heat = this.#heatmap[row][col]
+
+        if (heat > minHotspotHeat) {
+          hotspot = { row, col }
+          minHotspotHeat = heat
+        }
+      }
+    }
+    return hotspot
+  }
+
   getHotspots(minHotspotHeat: number): { row: number; col: number }[] {
     const hotspots: { row: number; col: number }[] = []
 
