@@ -1,5 +1,5 @@
 import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
-import { SharedExclusiveLock } from '../memory'
+import { MainWorkerLock } from '../memory'
 import type { Boat, PlaceableBoat } from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
@@ -7,7 +7,7 @@ type Grid = NonNullable<JobData['grid']>
 
 // SharedData
 let workerIndex: number
-let lock: SharedExclusiveLock
+let lock: MainWorkerLock
 let mainData: Uint32Array
 let workerData: Uint32Array
 let heatmap: Uint32Array
@@ -26,19 +26,19 @@ let boatsPlaced: Boat[] = []
 let boatPlaceAttempts: number
 
 const onresult = (callback: () => void) => {
-  lock.lockShared()
+  lock.lockWorker()
   try {
     if (Atomics.load(mainData, JOB_ID) !== data.id) return
     callback()
   } finally {
-    lock.unlockShared()
+    lock.unlockWorker()
   }
 }
 
 self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   if ('workerIndex' in e.data) {
     workerIndex = e.data.workerIndex
-    lock = SharedExclusiveLock.connect(e.data.lock)
+    lock = MainWorkerLock.connect(e.data.lock)
     mainData = new Uint32Array(e.data.mainDataBuffer)
     workerData = new Uint32Array(e.data.workerDataBuffer)
     heatmap = new Uint32Array(e.data.heatmapBuffer)

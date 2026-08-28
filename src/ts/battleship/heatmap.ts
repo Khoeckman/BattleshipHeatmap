@@ -1,10 +1,10 @@
 import { JOB_ID, ATTEMPTS, SUCCESSES } from '../constants'
-import { alignToCacheLine, SharedExclusiveLock } from '../memory'
+import { alignToCacheLine, MainWorkerLock } from '../memory'
 import BattleshipGrid, { type Boat } from './grid'
 
 export type SharedData = {
   workerIndex: number
-  lock: SharedExclusiveLock
+  lock: MainWorkerLock
   mainDataBuffer: SharedArrayBuffer
   workerDataBuffer: SharedArrayBuffer
   heatmapBuffer: SharedArrayBuffer
@@ -22,17 +22,17 @@ export type JobData = {
   grid?: Uint8Array[]
 }
 
-export const scopedLock = async (lock: SharedExclusiveLock, callback: () => void): Promise<void> => {
+export const scopedLock = async (lock: MainWorkerLock, callback: () => void): Promise<void> => {
   await lock
-    .lockExclusive()
+    .lockMain()
     .then(() => callback())
-    .finally(() => lock.unlockExclusive())
+    .finally(() => lock.unlockMain())
 }
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   #threads = Math.max(1, navigator.hardwareConcurrency - 1)
   #workers: Worker[] = Array(this.#threads)
-  #lock = new SharedExclusiveLock()
+  #lock = new MainWorkerLock()
 
   /**
    * Shared data from the main thread to the workers.
