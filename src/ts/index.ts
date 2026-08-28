@@ -51,12 +51,15 @@ try {
 rowsInput.addEventListener('change', handleDimension)
 colsInput.addEventListener('change', handleDimension)
 
-function handleDimension(this: HTMLInputElement & { id: 'rows' | 'cols' }) {
+function handleDimension(this: HTMLInputElement & { id: 'rows' | 'cols' }, e?: Event) {
   try {
     const dimension = this.valueAsNumber
     if (this.id === 'rows') io.resizeGrid(dimension, io.heatmap.cols)
     else io.resizeGrid(io.heatmap.rows, dimension)
   } catch (err) {
+    // Prevent form submission
+    e?.preventDefault()
+
     window.alert(err instanceof Error ? err.message : err)
     this.valueAsNumber = io.heatmap[this.id]
   }
@@ -66,7 +69,7 @@ handleDimension.call(colsInput)
 
 boatsInput.addEventListener('change', parseBoatLengths)
 
-function parseBoatLengths(this: HTMLInputElement) {
+function parseBoatLengths(this: HTMLInputElement, e?: Event) {
   try {
     if (!this.value) io.heatmap.boatLengths = []
     else io.heatmap.boatLengths = this.value.split(',').map((length) => parseInt(length))
@@ -74,6 +77,9 @@ function parseBoatLengths(this: HTMLInputElement) {
     io.settingsStore.set('boats', io.heatmap.boatLengths)
     io.renderFleet()
   } catch (err) {
+    // Prevent form submission
+    e?.preventDefault()
+
     window.alert(err instanceof Error ? err.message : err)
     this.value = io.heatmap.boatLengths.join(',')
   }
