@@ -42,18 +42,20 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [V] make a proper shared lock so snapshot() does not copy data thats being mutated by the workers, which causes a race condition.
 
-[ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
-
 [ ] Update generation algorithm: if 2 H's are next to eachother, it means there is a boat lying there which is at least 3 long, because if it were only 2 it should have been sunken already (marked with S's)
 
 [ ] when allow touching is on, users must be able to mark the direction of each segment because logic alone cannot pinpoint what type of boats are laying in a 2x3 rectangle of H's (2x 3 long) or (3x 2 long).
 
+[ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
+
+[ ] Use modals instead of window.alert() for errors.
+
+[ ] use bow classes to shape sunken boats (only when "allow touching" is off). CSS code is already present.
+
 ## Nice to have
 
-[ ] use bow classes to shape sunken boats (only when "allow touching" is off)
+[ ] User friendly error messages (include error_status so it can be mapped to user friendly messages?).
 
-[ ] change neighboring H's to S when "allow touching" is off
+[ ] Display letters and numbers next to grid (1-26, A-Z).
 
-[ ] display letters and numbers next to grid
-
-[ ] use modals instead of window.alert() for errors + better error messages
+[ ] Change neighboring H's to S when "allow touching" is off. (Should be toggleable?).
