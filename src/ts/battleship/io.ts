@@ -59,6 +59,7 @@ export default class BattleshipIO {
   public cursor = { row: 0, col: 0 }
 
   #frameHandle = -1
+  #lastFrameTs = 0
 
   constructor(
     settingsStore: HyperStorage<Settings>,
@@ -205,11 +206,20 @@ export default class BattleshipIO {
   }
 
   scheduleRenderHeatmap() {
-    this.renderGenerationInfo()
-
+    // If generation stopped, do not schedule another frame but do render the last changes
     if (this.heatmap.generating) {
       this.#frameHandle = requestAnimationFrame(() => this.scheduleRenderHeatmap())
     }
+
+    this.renderGenerationInfo()
+
+    // Throttle heatmap rendering frequency to 20Hz
+    const fps = 20
+    const now = performance.now()
+
+    if (now - this.#lastFrameTs < 1000 / fps) return
+
+    this.#lastFrameTs = now
     this.renderHeatmap()
   }
 
@@ -239,8 +249,7 @@ export default class BattleshipIO {
     const { els: heatEls, state: heatCache } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
-    // Slowly rise from 98% to 100% the more successful configurations have been accumulated
-    const hotspotMargin = 0.995
+    const hotspotMargin = 0.99
     let hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
     // Don't highlight the hotspots if there are too many
