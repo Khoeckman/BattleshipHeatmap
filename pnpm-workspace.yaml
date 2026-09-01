@@ -1,2 +1,4 @@
 allowBuilds:
   '@parcel/watcher': false
+minimumReleaseAgeExclude:
+  - globals@17.12.0
