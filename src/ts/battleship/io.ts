@@ -426,8 +426,7 @@ export default class BattleshipIO {
   }
 
   #handleKeyDown(e: KeyboardEvent): void {
-    if (document.activeElement instanceof HTMLElement && document.activeElement.matches('input, textarea, select'))
-      return
+    if (document.activeElement !== document.body) return
 
     if (e.ctrlKey || e.altKey || e.shiftKey) return
 

@@ -109,12 +109,18 @@ settingsForm.addEventListener('submit', (e) => {
   e.preventDefault()
 
   const usedSubmitButton = document.activeElement === e.submitter
-  if (io.heatmap.generating && usedSubmitButton) {
-    io.heatmap.generating = false
+
+  if (!usedSubmitButton) {
+    e.submitter?.focus()
     return
   }
 
+  if (io.heatmap.generating) {
+    io.heatmap.generating = false
+    return
+  }
   io.startGenerating()
+  return
 })
 
 clearButton.addEventListener('click', () => {
