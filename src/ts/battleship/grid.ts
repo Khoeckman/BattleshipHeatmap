@@ -200,6 +200,9 @@ export default class BattleshipGrid {
     return false
   }
 
+  // TODO: this must be converted to a util only function, Error part should be moved to io.
+  // Util function should return an array of boats only
+
   updateBoatsSunken(): BoatsTooManyError | void {
     this.#boatsSunken = []
 

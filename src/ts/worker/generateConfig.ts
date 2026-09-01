@@ -22,10 +22,9 @@ let boatLengths: Uint8Array
 let grid: Grid
 let bitmap: Uint8Array
 
-let boatsPlaced: Boat[] = []
 let boatPlaceAttempts: number
 
-const onresult = (callback: () => void) => {
+const scopedLock = (callback: () => void) => {
   lock.lockWorker()
   try {
     if (Atomics.load(mainData, JOB_ID) !== data.id) return
@@ -50,14 +49,22 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   data = e.data
   if (!data.grid) return
 
+  // Remove sunken boats from boatLengths
+  for (const boat of data.boatsSunken) {
+    const sameLengthBoatIndex = data.boatLengths.findIndex((boatLength) => boatLength === boat.length)
+    data.boatLengths.splice(sameLengthBoatIndex, 1)
+  }
+
   // TODO: for performance reasons, mark all cells around boats with MISS on data.grid once before starting the loop
   // data.grid = todo(data.grid)
+
+  // TODO: use logic to try and find guaranteed placements of boats
 
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
   boatLengths = new Uint8Array(data.boatLengths.length)
   grid = data.grid.map((row) => new Uint8Array(row.length))
-  bitmap = new Uint8Array(data.rows * data.cols * Uint8Array.BYTES_PER_ELEMENT)
+  bitmap = new Uint8Array(data.rows * data.cols)
 
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
 
@@ -71,7 +78,6 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 function generateConfig(grid: Grid): void {
   bitmap.fill(0)
   boatLengths.set(data.boatLengths)
-  boatsPlaced.length = 0
 
   // Fisher-Yates shuffle
   for (let i = boatLengths.length - 1; i > 0; i--) {
@@ -83,6 +89,24 @@ function generateConfig(grid: Grid): void {
 
   let row
   let col
+
+  // TODO: optimalization: start with trying to place a boat through an H only.
+  // If there no space for the boat to fit, try the other boats before failing the attempt.
+  // Only try each other boat once! Remove from boatLengths and move to next loop should do
+  // When to stop H optimalization loop?
+  /* for (const boatLength of boatLengths) {
+    // loop over all H's?
+    for (let row = 0; row < data.rows; row++) {
+      for (let col = 0; col < data.cols; col++, i++) {}
+
+      const boat = { length: boatLength, row, col, vertical }
+
+      if (canPlaceBoat(grid, bitmap, boat) && placeBoat(grid, bitmap, boat)) {
+        boatsPlaced.push(boat)
+        break
+      }
+    }
+  } */
 
   for (const boatLength of boatLengths) {
     // The highest coordinates that the lowest coordinate of the boat can be at
@@ -115,46 +139,38 @@ function generateConfig(grid: Grid): void {
 
       const boat = { length: boatLength, row, col, vertical }
 
-      if (canPlaceBoat(grid, bitmap, boat) && placeBoat(grid, bitmap, boat)) {
+      if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
         boatPlaced = true
-        boatsPlaced.push(boat)
         break
       }
     }
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      onresult(() => workerData[workerDataOffset + ATTEMPTS]++)
+      scopedLock(() => workerData[workerDataOffset + ATTEMPTS]++)
       return
     }
   }
 
-  // Check if all hit and sunk clues have a boat placed on them
+  // Check if all HIT clues have been replaced by SUNK clues
   let i = 0
-
-  for (let row = 0; row < data.rows; row++) {
-    for (let col = 0; col < data.cols; col++, i++) {
-      const boatExpected = grid[row][col] & 3 // SUNK || HIT
-      const isBoatSegment = bitmap[i]
-
-      // Mission failed, we'll get 'em next time
-      if (boatExpected && !isBoatSegment) {
-        onresult(() => workerData[workerDataOffset + ATTEMPTS]++)
+  for (let r = 0; r < data.rows; r++) {
+    for (let c = 0; c < data.cols; c++, i++) {
+      if (grid[r][c] === BattleshipHeatmap.HIT) {
+        // Mission failed, we'll get 'em next time
+        scopedLock(() => workerData[workerDataOffset + ATTEMPTS]++)
         return
       }
     }
   }
 
   // Successful configuration found
-  onresult(() => {
+  scopedLock(() => {
     workerData[workerDataOffset + ATTEMPTS]++
     workerData[workerDataOffset + SUCCESSES]++
 
-    // PERFORMANCE: ~10% of resources are spent here
-    for (const boat of boatsPlaced) {
-      forEachBoatSegment(boat, (row, col) => {
-        heatmap[heatmapOffset + row * data.cols + col]++
-      })
+    for (let i = 0; i < data.rows * data.cols; i++) {
+      if (bitmap[i]) heatmap[heatmapOffset + i]++
     }
   })
 }
@@ -162,26 +178,27 @@ function generateConfig(grid: Grid): void {
 /**
  * Efficient preflight check if a boat can be validly placed
  */
-function canPlaceBoat(grid: Grid, bitmap: Uint8Array, boat: Boat): boat is PlaceableBoat {
+function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
   // if (!data.allowTouching) Should fail if boat is placed next to but not on a HIT clue
 
   let row = boat.row
   let col = boat.col
 
-  const dr = +boat.vertical
-  const dc = +!boat.vertical
+  const dRow = +boat.vertical
+  const dCol = +!boat.vertical
 
-  const endRow = boat.row + dr * (boat.length - 1)
-  const endCol = boat.col + dc * (boat.length - 1)
+  const endRow = boat.row + dRow * (boat.length - 1)
+  const endCol = boat.col + dCol * (boat.length - 1)
 
   // Out of bounds
   if (row < 0 || col < 0 || endRow > data.rows || endCol > data.cols) return false
 
-  // Disallow placing the boat on another boat or on a MISS clue
+  // Disallow placing the boat on another boat or on a (SUNK || MISS) clue
   for (let segment = 0; segment < boat.length; segment++) {
-    if (bitmap[row * data.cols + col] || grid[row][col] === BattleshipHeatmap.MISS) return false
-    row += dr
-    col += dc
+    // SUNK || MISS
+    if (grid[row][col] & 5) return false
+    row += dRow
+    col += dCol
   }
   return true
 }
@@ -192,55 +209,61 @@ function canPlaceBoat(grid: Grid, bitmap: Uint8Array, boat: Boat): boat is Place
  * @returns true if the boat was placed, false if it could not be placed.
  */
 function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean {
-  if (!data.allowTouching) {
-    // Surround boat with water
-    const endRow = boat.row + +boat.vertical * (boat.length - 1)
-    const endCol = boat.col + +!boat.vertical * (boat.length - 1)
+  if (data.allowTouching) {
+    forEachBoatSegment(boat, (row, col) => {
+      bitmap[row * data.cols + col] = 1
+      grid[row][col] = BattleshipHeatmap.SUNK
+    })
+    return true
+  }
 
-    // Check all values in a bounding box around the boat
-    const minRow = Math.max(0, boat.row - 1)
-    const maxRow = Math.min(data.rows - 1, endRow + 1)
-    const minCol = Math.max(0, boat.col - 1)
-    const maxCol = Math.min(data.cols - 1, endCol + 1)
+  // Surround boat with water
+  let endRow = boat.row
+  let endCol = boat.col
 
-    for (let r = minRow; r <= maxRow; r++) {
-      for (let c = minCol; c <= maxCol; c++) {
-        const isBoatSegment = boat.vertical
-          ? c === boat.col && r >= boat.row && r < boat.row + boat.length
-          : r === boat.row && c >= boat.col && c < boat.col + boat.length
+  if (boat.vertical) endRow += boat.length - 1
+  else endCol += boat.length - 1
 
-        if (isBoatSegment) continue
+  // Check all values in a bounding box around the boat
+  const minRow = Math.max(0, boat.row - 1)
+  const maxRow = Math.min(data.rows - 1, endRow + 1)
+  const minCol = Math.max(0, boat.col - 1)
+  const maxCol = Math.min(data.cols - 1, endCol + 1)
 
-        // SUNK || HIT
-        if (grid[r][c] & 3) return false
-        grid[r][c] = BattleshipHeatmap.MISS
-      }
+  const isBoatSegment = (row: number, col: number) =>
+    boat.vertical
+      ? col === boat.col && row >= boat.row && row < boat.row + boat.length
+      : row === boat.row && col >= boat.col && col < boat.col + boat.length
+
+  for (let r = minRow; r <= maxRow; r++) {
+    for (let c = minCol; c <= maxCol; c++) {
+      // !isBoatSegment && (HIT || SUNK)
+      if (!isBoatSegment(r, c) && grid[r][c] & 3) return false
     }
   }
 
-  forEachBoatSegment(boat, (row, col) => {
-    bitmap[row * data.cols + col] = 1
-    grid[row][col] = BattleshipHeatmap.SUNK
-  })
+  for (let r = minRow; r <= maxRow; r++) {
+    for (let c = minCol; c <= maxCol; c++) {
+      if (isBoatSegment(r, c)) {
+        bitmap[r * data.cols + c] = 1
+        grid[r][c] = BattleshipHeatmap.SUNK
+        continue
+      }
+      grid[r][c] = BattleshipHeatmap.MISS
+    }
+  }
   return true
 }
 
-// Implement locally for JIT and GC optimization reasons
-let row: number
-let col: number
-let dr: number
-let dc: number
-let segment: number
-
 function forEachBoatSegment(boat: Boat, callback: (row: number, col: number) => void): void {
-  row = boat.row
-  col = boat.col
-  dr = +boat.vertical
-  dc = +!boat.vertical
+  let row = boat.row
+  let col = boat.col
+  const dRow = +boat.vertical
+  const dCol = +!boat.vertical
 
-  for (segment = 0; segment < boat.length; segment++) {
+  for (let segment = 0; segment < boat.length; segment++) {
     callback(row, col)
-    row += dr
-    col += dc
+    row += dRow
+    col += dCol
   }
 }
