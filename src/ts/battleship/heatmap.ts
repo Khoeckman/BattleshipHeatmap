@@ -16,7 +16,7 @@ export type JobData = {
   id: number
   rows: number
   cols: number
-  boatLengths: Uint8Array
+  boatLengths: number[]
   boatsSunken: Boat[]
   allowTouching: boolean
   grid?: Uint8Array[]
@@ -291,7 +291,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         id: this.#mainDataLive[JOB_ID],
         rows: this.rows,
         cols: this.cols,
-        boatLengths: Uint8Array.from(this.boatLengths),
+        boatLengths: this.boatLengths,
         boatsSunken: this.boatsSunken,
         allowTouching: this.allowTouching,
         grid: this.grid.map((row) => Uint8Array.from(row)),
