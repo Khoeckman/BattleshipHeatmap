@@ -465,6 +465,7 @@ export default class BattleshipIO {
       case 'ArrowDown':
         this.moveCursor(1, 0)
         break
+      case 'c':
       case 'x':
       case 'Backspace':
         this.setCursorCell(BattleshipHeatmap.EMPTY)
