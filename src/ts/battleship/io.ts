@@ -225,8 +225,8 @@ export default class BattleshipIO {
 
     this.renderGenerationInfo()
 
-    // Throttle heatmap rendering frequency to 20Hz
-    const fps = 20
+    // Throttle heatmap rendering frequency to 30Hz
+    const fps = 30
     const now = performance.now()
 
     if (now - this.#lastFrameTs < 1000 / fps) return
