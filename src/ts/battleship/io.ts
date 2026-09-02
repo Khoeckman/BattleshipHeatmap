@@ -264,8 +264,9 @@ export default class BattleshipIO {
     const hotspotMargin = 0.99
     let hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
-    // Don't highlight the hotspots if there are too many
-    if (hotspots.length > Math.sqrt(this.heatmap.rows * this.heatmap.cols)) hotspots = [this.heatmap.getHottest()]
+    // Only highlight the single hottest spot if there are too many hotspots
+    if (hotspots.length > Math.sqrt(this.heatmap.rows * this.heatmap.cols) * 4 - 4)
+      hotspots = [this.heatmap.getHottest()]
 
     minHeat *= 0.9
     maxHeat *= 1.1
