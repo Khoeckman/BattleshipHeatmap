@@ -3,6 +3,11 @@ import { MainWorkerLock } from '../memory'
 import type { Boat, PlaceableBoat } from '../battleship/grid'
 import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/heatmap'
 
+// Hyper complex idea:
+// Calculate for every cell, if I shoot there, how many shots on avg I will need to uncover all boats when only shooting at the hottest spot
+// Where the boats lay is decided if the chance of hitting is 100.0%
+// Because, shooting at the cell with the highest probability might be less favorable for the future than a lesser immediate shot
+
 type Grid = NonNullable<JobData['grid']>
 
 // SharedData
