@@ -270,7 +270,7 @@ export default class BattleshipIO {
         if (this.heatmap.getCell(row, col) !== 0) continue
 
         const heat = this.heatmap.getHeat(row, col)
-        const heatString = (heat * 100).toFixed(1)
+        const heatString = (heat * 100).toPrecision(3)
         const isHotspot = checkHotspot(hotspots, row, col)
 
         // Cache heat values and skip if the value remained the same
