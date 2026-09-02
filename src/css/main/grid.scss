@@ -102,7 +102,7 @@
 
     &.hotspot {
       border: 2px solid var(--success);
-      box-shadow: inset 0 0 0.25rem var(--bg);
+      box-shadow: inset 0 0 0.25rem var(--black);
       animation: hotspot-blink 2s infinite ease;
 
       &.cursor {
