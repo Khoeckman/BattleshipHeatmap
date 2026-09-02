@@ -113,9 +113,7 @@ export default class BattleshipIO {
     const onStopGenerating = () => this.updateGenerateButton()
     const onFinishGenerating = () => {
       this.renderHeatmap()
-      this.gridEl.classList.add('restart-hotspot-animation')
-      void this.gridEl.offsetWidth
-      this.gridEl.classList.remove('restart-hotspot-animation')
+      this.gridEl.classList.remove('disable-hotspot-animation')
     }
 
     this.heatmap = new BattleshipHeatmap(
@@ -426,6 +424,8 @@ export default class BattleshipIO {
 
     // Prevent creating multiple schedule loops in series
     cancelAnimationFrame(this.#frameHandle)
+
+    this.gridEl.classList.add('disable-hotspot-animation')
 
     await this.heatmap.startGenerating()
     this.renderGrid()

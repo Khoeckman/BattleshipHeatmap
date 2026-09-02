@@ -35,10 +35,12 @@
     position: relative;
     width: 2.5rem;
     height: 2.5rem;
+    transition: 125ms border-color ease-in;
 
     &:hover {
       background-color: var(--l1);
       border-color: var(--a1_8);
+      transition: none;
     }
 
     &.cursor {
@@ -99,7 +101,7 @@
     }
 
     &.hotspot {
-      border-width: 2px;
+      border: 2px solid var(--success);
       box-shadow: inset 0 0 0.25rem var(--bg);
       animation: hotspot-blink 2s infinite ease;
 
@@ -141,13 +143,12 @@
   }
 }
 
-#grid.restart-hotspot-animation .cell.hotspot {
+#grid.disable-hotspot-animation .cell.hotspot {
   animation: none;
 }
 
 @media print {
   #grid .cell.hotspot {
-    border-color: var(--success);
     animation: none;
   }
 }
