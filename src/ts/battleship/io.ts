@@ -39,13 +39,27 @@ export default class BattleshipIO {
     5: 'Carrier',
   }
 
-  private static enUS_compact = Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    maximumSignificantDigits: 3,
-    maximumFractionDigits: 2,
+  private static secondFormat = Intl.NumberFormat('en-US', {
+    style: 'unit',
+    unit: 'second',
+    unitDisplay: 'narrow',
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
   })
 
-  private static fullNumberFormat = Intl.NumberFormat('nl-BE')
+  private static millisecondFormat = Intl.NumberFormat('en-US', {
+    style: 'unit',
+    unit: 'millisecond',
+    unitDisplay: 'narrow',
+    maximumFractionDigits: 3,
+  })
+
+  private static compactFormat = Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumSignificantDigits: 3,
+  })
+
+  private static fullFormat = Intl.NumberFormat('en-US')
 
   public boatsSunkenError: BoatsTooManyError | null = null
 
@@ -310,16 +324,17 @@ export default class BattleshipIO {
   async renderGenerationInfo(snapshot = true): Promise<void> {
     if (snapshot) await this.heatmap.snapshot()
 
-    const generationTimeMs = performance.now() - this.heatmap.generationStartTs
+    const generationTimeMs = this.heatmap.generationStartTs ? performance.now() - this.heatmap.generationStartTs : 0
 
     // Convert to seconds with one decimal
-    this.dataEls.timeData.textContent = (generationTimeMs / 1000).toFixed(1) + 's'
+    this.dataEls.timeData.textContent = BattleshipIO.secondFormat.format(generationTimeMs / 1000)
+    this.dataEls.timeData.title = BattleshipIO.millisecondFormat.format(generationTimeMs)
 
-    this.dataEls.attemptsData.textContent = BattleshipIO.enUS_compact.format(this.heatmap.attempts)
-    this.dataEls.attemptsData.title = BattleshipIO.fullNumberFormat.format(this.heatmap.attempts)
+    this.dataEls.attemptsData.textContent = BattleshipIO.compactFormat.format(this.heatmap.attempts)
+    this.dataEls.attemptsData.title = BattleshipIO.fullFormat.format(this.heatmap.attempts)
 
-    this.dataEls.configsData.textContent = BattleshipIO.enUS_compact.format(this.heatmap.success)
-    this.dataEls.configsData.title = BattleshipIO.fullNumberFormat.format(this.heatmap.success)
+    this.dataEls.configsData.textContent = BattleshipIO.compactFormat.format(this.heatmap.success)
+    this.dataEls.configsData.title = BattleshipIO.fullFormat.format(this.heatmap.success)
   }
 
   renderCursor(): void {
