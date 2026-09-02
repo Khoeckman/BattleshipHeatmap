@@ -10,6 +10,8 @@ import BattleshipHeatmap, { type SharedData, type JobData } from '../battleship/
 
 type Grid = NonNullable<JobData['grid']>
 
+const clue = BattleshipHeatmap
+
 // SharedData
 let workerIndex: number
 let lock: MainWorkerLock
@@ -161,7 +163,7 @@ function generateConfig(grid: Grid): void {
   let i = 0
   for (let r = 0; r < data.rows; r++) {
     for (let c = 0; c < data.cols; c++, i++) {
-      if (grid[r][c] === BattleshipHeatmap.HIT) {
+      if (grid[r][c] === clue.HIT) {
         // Mission failed, we'll get 'em next time
         scopedLock(() => workerData[workerDataOffset + ATTEMPTS]++)
         return
@@ -217,7 +219,7 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
   if (data.allowTouching) {
     forEachBoatSegment(boat, (row, col) => {
       bitmap[row * data.cols + col] = 1
-      grid[row][col] = BattleshipHeatmap.SUNK
+      grid[row][col] = clue.SUNK
     })
     return true
   }
@@ -240,21 +242,29 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
       ? col === boat.col && row >= boat.row && row < boat.row + boat.length
       : row === boat.row && col >= boat.col && col < boat.col + boat.length
 
+  let isAllHit = true
+
   for (let r = minRow; r <= maxRow; r++) {
     for (let c = minCol; c <= maxCol; c++) {
-      // !isBoatSegment && (HIT || SUNK)
-      if (!isBoatSegment(r, c) && grid[r][c] & 3) return false
+      if (isBoatSegment(r, c)) {
+        if (isAllHit && grid[r][c] !== clue.HIT) isAllHit = false
+      } else if (grid[r][c] & 3) {
+        return false
+      }
     }
   }
+
+  // The boat should either be marked as SUNK or is too short
+  if (isAllHit) return false
 
   for (let r = minRow; r <= maxRow; r++) {
     for (let c = minCol; c <= maxCol; c++) {
       if (isBoatSegment(r, c)) {
         bitmap[r * data.cols + c] = 1
-        grid[r][c] = BattleshipHeatmap.SUNK
+        grid[r][c] = clue.SUNK
         continue
       }
-      grid[r][c] = BattleshipHeatmap.MISS
+      grid[r][c] = clue.MISS
     }
   }
   return true
