@@ -30,6 +30,7 @@ let grid: Grid
 let bitmap: Uint8Array
 
 let boatPlaceAttempts: number
+let hits: { row: number; col: number }[]
 
 const scopedLock = (callback: () => void) => {
   lock.lockWorker()
@@ -69,11 +70,23 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
-  boatLengths = new Uint8Array(data.boatLengths.length)
-  grid = data.grid.map((row) => new Uint8Array(row.length))
+  boatLengths = new Uint8Array(data.boatLengths)
+  grid = data.grid.map((row) => new Uint8Array(row))
   bitmap = new Uint8Array(data.rows * data.cols)
 
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
+
+  // Cache hit coordinates
+  hits = []
+
+  for (let row = 0; row < data.rows; row++) {
+    for (let col = 0; col < data.cols; col++) {
+      if (grid[row][col] === clue.HIT) hits.push({ row, col })
+    }
+  }
+
+  // If there are the same amount or more HIT clues than boat segments there are no solutions
+  if (hits.length >= boatLengths.reduce((segments, length) => segments + length, 0)) return
 
   // Keep generating until the main thread increases JOB_ID
   while (Atomics.load(mainData, JOB_ID) === data.id) {
@@ -87,6 +100,13 @@ function generateConfig(grid: Grid): void {
   boatLengths.set(data.boatLengths)
 
   // Fisher-Yates shuffle
+  for (let i = hits.length - 1; i > 0; i--) {
+    const j = ~~(Math.random() * (i + 1))
+    const temp = hits[i]
+    hits[i] = hits[j]
+    hits[j] = temp
+  }
+
   for (let i = boatLengths.length - 1; i > 0; i--) {
     const j = ~~(Math.random() * (i + 1))
     const temp = boatLengths[i]
@@ -94,29 +114,99 @@ function generateConfig(grid: Grid): void {
     boatLengths[j] = temp
   }
 
-  let row
-  let col
-
   // TODO: optimalization: start with trying to place a boat through an H only.
   // If there no space for the boat to fit, try the other boats before failing the attempt.
   // Only try each other boat once! Remove from boatLengths and move to next loop should do
   // When to stop H optimalization loop?
-  /* for (const boatLength of boatLengths) {
-    // loop over all H's?
-    for (let row = 0; row < data.rows; row++) {
-      for (let col = 0; col < data.cols; col++, i++) {}
+  nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
+    for (let boatIndex = 0; boatIndex < boatLengths.length; boatIndex++) {
+      const boatLength = boatLengths[boatIndex]
+      if (!boatLength) continue
 
-      const boat = { length: boatLength, row, col, vertical }
+      const { row: hitRow, col: hitCol } = hits[hitIndex]
+      const boatDist = boatLength - 1
 
-      if (canPlaceBoat(grid, bitmap, boat) && placeBoat(grid, bitmap, boat)) {
-        boatsPlaced.push(boat)
-        break
+      const minRow = Math.max(0, hitRow - boatDist)
+      const minCol = Math.max(0, hitCol - boatDist)
+
+      const cols = hitRow - minRow + 1
+      const rows = hitCol - minCol + 1
+
+      // Amount of cells that the boat can be placed in horizontally vs vertically
+      const placeHorCells = rows + boatDist
+      const placeVerCells = hitCol - minCol + boatDist
+      const verFirst = shouldPlaceVertically(placeHorCells, placeVerCells)
+
+      const boatPlaceAttempts = rows * cols * 80
+
+      // First try all vertical placements, then all horizontal placements (or vice versa)
+      if (verFirst) {
+        for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
+          const row = minRow + ~~(Math.random() * cols)
+          const boat = { length: boatLength, row, col: hitCol, vertical: true }
+
+          if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
+            boatLengths[boatIndex] = 0
+            continue nextHit
+          }
+        }
+
+        for (let row = minRow; row <= hitRow; row++) {
+          const boat = { length: boatLength, row, col: hitCol, vertical: true }
+
+          if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
+            boatLengths[boatIndex] = 0
+            continue nextHit
+          }
+        }
+      }
+
+      for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
+        const col = minCol + ~~(Math.random() * rows)
+        const boat = { length: boatLength, row: hitRow, col, vertical: false }
+
+        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
+          boatLengths[boatIndex] = 0
+          continue nextHit
+        }
+      }
+
+      for (let col = minCol; col <= hitCol; col++) {
+        const boat = { length: boatLength, row: hitRow, col, vertical: false }
+
+        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
+          boatLengths[boatIndex] = 0
+          continue nextHit
+        }
+      }
+
+      if (verFirst) continue
+
+      for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
+        const row = minRow + ~~(Math.random() * cols)
+        const boat = { length: boatLength, row, col: hitCol, vertical: true }
+
+        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
+          boatLengths[boatIndex] = 0
+          continue nextHit
+        }
+      }
+
+      for (let row = minRow; row <= hitRow; row++) {
+        const boat = { length: boatLength, row, col: hitCol, vertical: true }
+
+        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
+          boatLengths[boatIndex] = 0
+          continue nextHit
+        }
       }
     }
-  } */
+  }
 
   for (const boatLength of boatLengths) {
-    // The highest coordinates that the lowest coordinate of the boat can be at
+    if (!boatLength) continue
+
+    // The highest coordinates of the grid that the lowest coordinate of the boat can be at
     const maxCol = Math.max(0, data.cols - boatLength + 1)
     const maxRow = Math.max(0, data.rows - boatLength + 1)
 
@@ -132,8 +222,8 @@ function generateConfig(grid: Grid): void {
     // first boat = 100% chance of finding an empty spot by chance on the first try
     // last boat = possibly no empty spots left due to an inefficient configuration of the other boats
     for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
-      // The chances of placing a boat horizontally vs vertically should be proportional to the amount of cells it can be placed in that direction.
-      const vertical = !(Math.random() < placeHorCells / (placeHorCells + placeVerCells))
+      const vertical = shouldPlaceVertically(placeHorCells, placeVerCells)
+      let row, col
 
       // Place the boat randomly ensuring it won't exceed the grid limits
       if (vertical) {
@@ -180,6 +270,11 @@ function generateConfig(grid: Grid): void {
       if (bitmap[i]) heatmap[heatmapOffset + i]++
     }
   })
+}
+
+function shouldPlaceVertically(placeHorCells: number, placeVerCells: number): boolean {
+  // The chances of placing a boat horizontally vs vertically should be proportional to the amount of cells it can be placed in that direction.
+  return Math.random() > placeHorCells / (placeHorCells + placeVerCells)
 }
 
 /**
