@@ -139,6 +139,8 @@ function generateConfig(grid: Grid): void {
 
       const boatPlaceAttempts = rows * cols * 80
 
+      // TODO: deduplicate code (6x)
+
       // First try all vertical placements, then all horizontal placements (or vice versa)
       if (verFirst) {
         for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {

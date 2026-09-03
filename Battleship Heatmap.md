@@ -46,7 +46,7 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [V] Update generation algorithm: if 2 H's are next to eachother, it means there is a boat lying there which is at least 3 long, because if it were only 2 it should have been sunken already (marked with S's)
 
-[ ] If you place 5 randomly spread H's for 5 total boats, the success chance plummets. Optimize by only trying to place boats through H's first.
+[V] If you place 5 randomly spread H's for 5 total boats, the success chance plummets. Optimize by only trying to place boats through H's first.
 
 [ ] when allow touching is on, users must be able to mark the direction of each segment because logic alone cannot pinpoint what type of boats are laying in a 2x3 rectangle of H's (2x 3 long) or (3x 2 long).
 
