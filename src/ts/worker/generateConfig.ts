@@ -135,7 +135,7 @@ function generateConfig(grid: Grid): void {
       // Amount of cells that the boat can be placed in horizontally vs vertically
       const placeHorCells = rows + boatDist
       const placeVerCells = hitCol - minCol + boatDist
-      const verFirst = shouldPlaceVertically(placeHorCells, placeVerCells)
+      const verFirst = placeVertically(placeHorCells, placeVerCells)
 
       const boatPlaceAttempts = rows * cols * 80
 
@@ -224,7 +224,7 @@ function generateConfig(grid: Grid): void {
     // first boat = 100% chance of finding an empty spot by chance on the first try
     // last boat = possibly no empty spots left due to an inefficient configuration of the other boats
     for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
-      const vertical = shouldPlaceVertically(placeHorCells, placeVerCells)
+      const vertical = placeVertically(placeHorCells, placeVerCells)
       let row, col
 
       // Place the boat randomly ensuring it won't exceed the grid limits
@@ -274,13 +274,20 @@ function generateConfig(grid: Grid): void {
   })
 }
 
-function shouldPlaceVertically(placeHorCells: number, placeVerCells: number): boolean {
-  // The chances of placing a boat horizontally vs vertically should be proportional to the amount of cells it can be placed in that direction.
-  return Math.random() > placeHorCells / (placeHorCells + placeVerCells)
+/**
+ * The chances of placing a boat horizontally vs vertically should be proportional
+ * to the amount of positions it can be placed in in that direction.
+ *
+ * @returns true if the boat should be placed vertically, false if horizontally
+ */
+function placeVertically(placeHorPositions: number, placeVerPositions: number): boolean {
+  return Math.random() > placeHorPositions / (placeHorPositions + placeVerPositions)
 }
 
 /**
  * Efficient preflight check if a boat can be validly placed
+ *
+ * @returns The same boat, type-marked as placeable
  */
 function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
   // if (!data.allowTouching) Should fail if boat is placed next to but not on a HIT clue
