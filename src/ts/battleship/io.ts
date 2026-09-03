@@ -39,7 +39,7 @@ export default class BattleshipIO {
     5: 'Carrier',
   }
 
-  private static secondFormat = Intl.NumberFormat('en-US', {
+  private static secondFormat = Intl.NumberFormat(navigator.language, {
     style: 'unit',
     unit: 'second',
     unitDisplay: 'narrow',
@@ -47,19 +47,20 @@ export default class BattleshipIO {
     maximumFractionDigits: 1,
   })
 
-  private static millisecondFormat = Intl.NumberFormat('en-US', {
+  private static millisecondFormat = Intl.NumberFormat(navigator.language, {
     style: 'unit',
     unit: 'millisecond',
     unitDisplay: 'narrow',
+    minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   })
 
-  private static compactFormat = Intl.NumberFormat('en-US', {
+  private static compactFormat = Intl.NumberFormat(navigator.language, {
     notation: 'compact',
     maximumSignificantDigits: 3,
   })
 
-  private static fullFormat = Intl.NumberFormat('en-US')
+  private static fullFormat = Intl.NumberFormat(navigator.language)
 
   public boatsSunkenError: BoatsTooManyError | null = null
 
