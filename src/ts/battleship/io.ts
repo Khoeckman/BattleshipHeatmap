@@ -13,7 +13,7 @@ export type DataElements = {
 
 type HeatCache = {
   els: HTMLElement[][]
-  state: string[][]
+  state: number[][]
   hotspots: { row: number; col: number }[]
 }
 
@@ -242,7 +242,7 @@ export default class BattleshipIO {
     if (!this.heat.els.length) {
       const rows = [...this.gridEl.children] as HTMLElement[]
       this.heat.els = rows.map((rowEl) => [...rowEl.children] as HTMLElement[])
-      this.heat.state = this.heat.els.map((row) => row.map(() => ''))
+      this.heat.state = this.heat.els.map((row) => row.map(() => 0))
     }
     return this.heat
   }
@@ -284,15 +284,19 @@ export default class BattleshipIO {
         if (this.heatmap.getCell(row, col) !== 0) continue
 
         const heat = this.heatmap.getHeat(row, col)
-        const heatString = (heat * 100).toPrecision(3)
+        const cellHeatCache = rowHeatCache[col]
         const isHotspot = checkHotspot(hotspots, row, col)
 
-        // Cache heat values and skip if the value remained the same
-        if (rowHeatCache[col] === heatString) {
-          // If it is a hotspot it must have been cached already
+        const heatDiff = Math.abs(heat - cellHeatCache)
+        const heatRatio = heat / cellHeatCache
+
+        // Skip if heat value remained nearly the same
+        if (heatDiff < 0.0005 && heatRatio > 0.998 && heatRatio < 1.002) {
+          // The cache should be invalidated if the hotspot status changes
           if (isHotspot === checkHotspot(this.heat.hotspots, row, col)) continue
         }
-        rowHeatCache[col] = heatString
+        // Cache new heat value (invalidate cache)
+        rowHeatCache[col] = heat
 
         const cellEl = rowEls[col]
         let cellElClassList = cellEl.classList.value
@@ -301,7 +305,7 @@ export default class BattleshipIO {
         if (!heat) {
           cellElClassList = isCursor ? 'cell cursor' : 'cell'
         } else {
-          cellEl.textContent = heatString
+          cellEl.textContent = (heat * 100).toPrecision(3).slice(0, 4)
           cellElClassList = 'cell heat'
 
           if (isCursor) cellElClassList += ' cursor'
