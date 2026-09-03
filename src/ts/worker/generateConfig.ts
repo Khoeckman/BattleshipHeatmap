@@ -198,7 +198,7 @@ function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
   const endCol = boat.col + dCol * (boat.length - 1)
 
   // Out of bounds
-  if (row < 0 || col < 0 || endRow > data.rows || endCol > data.cols) return false
+  if (row < 0 || col < 0 || endRow >= data.rows || endCol >= data.cols) return false
 
   // Disallow placing the boat on another boat or on a (SUNK || MISS) clue
   for (let segment = 0; segment < boat.length; segment++) {
