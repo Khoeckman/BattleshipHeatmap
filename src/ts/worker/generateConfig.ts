@@ -114,30 +114,32 @@ function generateConfig(grid: Grid): void {
     boatLengths[j] = temp
   }
 
-  // TODO: optimalization: start with trying to place a boat through an H only.
-  // If there no space for the boat to fit, try the other boats before failing the attempt.
-  // Only try each other boat once! Remove from boatLengths and move to next loop should do
-  // When to stop H optimalization loop?
   nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
+    const { row: hitRow, col: hitCol } = hits[hitIndex]
+
+    // Another boat was placed over this HIT clue aswell
+    if (grid[hitRow][hitCol] !== clue.HIT) continue
+
     for (let boatIndex = 0; boatIndex < boatLengths.length; boatIndex++) {
       const boatLength = boatLengths[boatIndex]
       if (!boatLength) continue
 
-      const { row: hitRow, col: hitCol } = hits[hitIndex]
       const boatDist = boatLength - 1
 
       const minRow = Math.max(0, hitRow - boatDist)
+      const maxRow = Math.min(data.rows - 1, hitRow + boatDist)
       const minCol = Math.max(0, hitCol - boatDist)
+      const maxCol = Math.min(data.cols - 1, hitCol + boatDist)
 
       const cols = hitRow - minRow + 1
       const rows = hitCol - minCol + 1
 
       // Amount of cells that the boat can be placed in horizontally vs vertically
-      const placeHorCells = rows + boatDist
-      const placeVerCells = hitCol - minCol + boatDist
+      const placeHorCells = maxCol - minCol - boatDist + 1
+      const placeVerCells = maxRow - minRow - boatDist + 1
       const verFirst = placeVertically(placeHorCells, placeVerCells)
 
-      const boatPlaceAttempts = rows * cols * 80
+      const boatPlaceAttempts = (rows + cols) * 80
 
       // TODO: deduplicate code (6x)
 
