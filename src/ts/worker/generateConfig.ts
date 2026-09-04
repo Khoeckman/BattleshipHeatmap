@@ -142,12 +142,20 @@ function generateConfig(grid: Grid): void {
       const boatPlaceAttempts = (rows + cols) * 80
 
       // TODO: deduplicate code (6x)
+      // Try vertical then horizontal, or vice versa, depending on verFirst
+      for (let pass = 0; pass < 2; pass++) {
+        const vertical = pass === 0 ? verFirst : !verFirst
 
-      // First try all vertical placements, then all horizontal placements (or vice versa)
-      if (verFirst) {
+        const attemptBase = vertical ? minRow : minCol
+        const attemptRange = vertical ? cols : rows
+        const scanFrom = vertical ? minRow : minCol
+        const scanTo = vertical ? hitRow : hitCol
+
         for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
-          const row = minRow + ~~(Math.random() * cols)
-          const boat = { length: boatLength, row, col: hitCol, vertical: true }
+          const pos = attemptBase + ~~(Math.random() * attemptRange)
+          const boat = vertical
+            ? { length: boatLength, row: pos, col: hitCol, vertical: true }
+            : { length: boatLength, row: hitRow, col: pos, vertical: false }
 
           if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
             boatLengths[boatIndex] = 0
@@ -155,53 +163,15 @@ function generateConfig(grid: Grid): void {
           }
         }
 
-        for (let row = minRow; row <= hitRow; row++) {
-          const boat = { length: boatLength, row, col: hitCol, vertical: true }
+        for (let scan = scanFrom; scan <= scanTo; scan++) {
+          const boat = vertical
+            ? { length: boatLength, row: scan, col: hitCol, vertical: true }
+            : { length: boatLength, row: hitRow, col: scan, vertical: false }
 
           if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
             boatLengths[boatIndex] = 0
             continue nextHit
           }
-        }
-      }
-
-      for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
-        const col = minCol + ~~(Math.random() * rows)
-        const boat = { length: boatLength, row: hitRow, col, vertical: false }
-
-        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
-          boatLengths[boatIndex] = 0
-          continue nextHit
-        }
-      }
-
-      for (let col = minCol; col <= hitCol; col++) {
-        const boat = { length: boatLength, row: hitRow, col, vertical: false }
-
-        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
-          boatLengths[boatIndex] = 0
-          continue nextHit
-        }
-      }
-
-      if (verFirst) continue
-
-      for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
-        const row = minRow + ~~(Math.random() * cols)
-        const boat = { length: boatLength, row, col: hitCol, vertical: true }
-
-        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
-          boatLengths[boatIndex] = 0
-          continue nextHit
-        }
-      }
-
-      for (let row = minRow; row <= hitRow; row++) {
-        const boat = { length: boatLength, row, col: hitCol, vertical: true }
-
-        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
-          boatLengths[boatIndex] = 0
-          continue nextHit
         }
       }
     }
