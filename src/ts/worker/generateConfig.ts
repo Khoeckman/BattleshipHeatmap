@@ -139,7 +139,7 @@ function generateConfig(grid: Grid): void {
       const placeVerCells = maxRow - minRow - boatDist + 1
       const verFirst = placeVertically(placeHorCells, placeVerCells)
 
-      const boatPlaceAttempts = (rows + cols) * 80
+      const boatPlaceAttempts = rows + cols
 
       // TODO: deduplicate code (6x)
       // Try vertical then horizontal, or vice versa, depending on verFirst
