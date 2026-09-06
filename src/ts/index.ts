@@ -71,20 +71,26 @@ boatsInput.addEventListener('change', parseBoatLengths)
 
 function parseBoatLengths(this: HTMLInputElement, e?: Event) {
   try {
-    if (!this.value) io.heatmap.boatLengths = []
+    if (!this.value.trim()) io.heatmap.boatLengths = []
     else {
+      this.value = this.value.trim().replace(/[, ]+/g, ',')
+
       // Slice off trailing comma
       if (this.value.endsWith(',')) {
-        this.value = this.value.slice(0, -1)
+        this.value = this.value.slice(0, -1).trim()
       }
-      io.heatmap.boatLengths = this.value.split(',').map((length) => parseInt(length))
+      io.heatmap.boatLengths = this.value
+        .split(',')
+        .map((length) => parseInt(length.trim()))
+        .sort()
+
+      this.value = io.heatmap.boatLengths.join(',')
     }
     io.settingsStore.set('boats', io.heatmap.boatLengths)
     io.renderFleet()
   } catch (err) {
     // Prevent form submission
     e?.preventDefault()
-
     window.alert(err instanceof Error ? err.message : err)
     this.value = io.heatmap.boatLengths.join(',')
   }
