@@ -57,24 +57,22 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   data = e.data
   if (!data.grid) return
 
-  // Remove sunken boats from boatLengths
-  for (const boat of data.boatsSunken) {
-    const sameLengthBoatIndex = data.boatLengths.findIndex((boatLength) => boatLength === boat.length)
-    data.boatLengths.splice(sameLengthBoatIndex, 1)
-  }
-
-  // TODO: for performance reasons, mark all cells around boats with MISS on data.grid once before starting the loop
-  // data.grid = todo(data.grid)
-
-  // TODO: use logic to try and find guaranteed placements of boats
-
+  grid = data.grid.map((row) => new Uint8Array(row))
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
-  boatLengths = new Uint8Array(data.boatLengths)
-  grid = data.grid.map((row) => new Uint8Array(row))
   bitmap = new Uint8Array(data.rows * data.cols)
 
   boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
+
+  for (const boat of data.boatsSunken) {
+    // Remove sunken boats from boatLengths
+    const sameLengthBoatIndex = data.boatLengths.findIndex((boatLength) => boatLength === boat.length)
+    data.boatLengths.splice(sameLengthBoatIndex, 1)
+
+    // Surround sunken boats with MISS clues
+    placeBoat(grid, bitmap, boat as PlaceableBoat)
+  }
+  boatLengths = new Uint8Array(data.boatLengths)
 
   // Cache hit coordinates
   hits = []
