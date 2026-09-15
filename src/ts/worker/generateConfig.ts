@@ -125,55 +125,26 @@ function generateConfig(grid: Grid): void {
       if (!boatLength) continue
 
       const boatDist = boatLength - 1
-
       const minRow = Math.max(0, hitRow - boatDist)
-      const maxRow = Math.min(data.rows - 1, hitRow + boatDist)
       const minCol = Math.max(0, hitCol - boatDist)
-      const maxCol = Math.min(data.cols - 1, hitCol + boatDist)
 
-      const cols = hitRow - minRow + 1
-      const rows = hitCol - minCol + 1
+      const candidates: PlaceableBoat[] = []
 
-      // Amount of cells that the boat can be placed in horizontally vs vertically
-      const placeHorCells = maxCol - minCol - boatDist + 1
-      const placeVerCells = maxRow - minRow - boatDist + 1
-      debugger
-      let verticalFirst = placeVertically(placeHorCells, placeVerCells)
-
-      const boatPlaceAttempts = (rows + cols) * 2
-
-      for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
-        const vertical = attempt % 2 === 0 ? verticalFirst : !verticalFirst
-        const attemptBase = vertical ? minRow : minCol
-        const attemptRange = vertical ? cols : rows
-
-        const pos = attemptBase + ~~(Math.random() * attemptRange)
-        const row = vertical ? pos : hitRow
-        const col = vertical ? hitCol : pos
-        const boat = { length: boatLength, row, col, vertical }
-
-        if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
-          boatLengths[boatIndex] = 0
-          continue nextHit
-        }
+      for (let col = minCol; col <= hitCol; col++) {
+        const boat = { length: boatLength, row: hitRow, col, vertical: false }
+        if (canPlaceBoat(grid, boat)) candidates.push(boat)
       }
 
-      // Try vertical then horizontal, or vice versa, depending on verticalFirst
-      for (let pass = 0; pass < 2; pass++) {
-        const vertical = pass === 0 ? verticalFirst : !verticalFirst
-        const scanFrom = vertical ? minRow : minCol
-        const scanTo = vertical ? hitRow : hitCol
+      for (let row = minRow; row <= hitRow; row++) {
+        const boat = { length: boatLength, row, col: hitCol, vertical: true }
+        if (canPlaceBoat(grid, boat)) candidates.push(boat)
+      }
 
-        for (let scan = scanFrom; scan <= scanTo; scan++) {
-          const row = vertical ? scan : hitRow
-          const col = vertical ? hitCol : scan
-          const boat = { length: boatLength, row, col, vertical }
+      if (candidates.length === 0) continue
 
-          if (canPlaceBoat(grid, boat) && placeBoat(grid, bitmap, boat)) {
-            boatLengths[boatIndex] = 0
-            continue nextHit
-          }
-        }
+      if (placeBoat(grid, bitmap, candidates[~~(Math.random() * candidates.length)])) {
+        boatLengths[boatIndex] = 0
+        continue nextHit
       }
     }
   }
