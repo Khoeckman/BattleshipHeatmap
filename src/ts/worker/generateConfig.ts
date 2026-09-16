@@ -12,6 +12,11 @@ type Grid = NonNullable<JobData['grid']>
 
 const clue = BattleshipHeatmap
 
+// Binairy flag filters
+const anySunkFilter = ~clue.SUNK + 1 // SUNK || SUNK_*
+const hitOrSunkFilter = clue.HIT | anySunkFilter
+const missOrSunkFilter = clue.MISS | anySunkFilter
+
 // SharedData
 let workerIndex: number
 let lock: MainWorkerLock
@@ -248,8 +253,7 @@ function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
 
   // Disallow placing the boat on another boat or on a (SUNK || MISS) clue
   for (let segment = 0; segment < boat.length; segment++) {
-    // SUNK || MISS
-    if (grid[row][col] & 5) return false
+    if (grid[row][col] & missOrSunkFilter) return false
     row += dRow
     col += dCol
   }
@@ -294,7 +298,7 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
     for (let c = minCol; c <= maxCol; c++) {
       if (isBoatSegment(r, c)) {
         if (isAllHit && grid[r][c] !== clue.HIT) isAllHit = false
-      } else if (grid[r][c] & 3) {
+      } else if (grid[r][c] & hitOrSunkFilter) {
         return false
       }
     }

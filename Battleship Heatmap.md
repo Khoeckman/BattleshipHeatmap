@@ -52,13 +52,13 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
 
-[ ] Use modals instead of window.alert() for errors.
-
-[ ] use bow classes to shape sunken boats (only when "allow touching" is off). CSS code is already present.
+[ ] use bow classes to shape sunken boats. CSS code is already present.
 
 ## Nice to have
 
 [ ] User friendly error messages (include error_status so it can be mapped to user friendly messages?).
+
+[ ] Use modals instead of window.alert() for errors.
 
 [ ] Display letters and numbers next to grid (1-26, A-Z).
 

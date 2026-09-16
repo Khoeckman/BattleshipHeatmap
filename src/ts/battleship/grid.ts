@@ -4,9 +4,13 @@ export type BoatsTooManyError = { boat: Boat; total: number; sunken: number }
 
 export default class BattleshipGrid {
   public static readonly EMPTY = 0
-  public static readonly SUNK = 1
+  public static readonly MISS = 1
   public static readonly HIT = 2
-  public static readonly MISS = 4
+  public static readonly SUNK = 4
+  public static readonly SUNK_TOP = 8
+  public static readonly SUNK_LEFT = 16
+  public static readonly SUNK_BOTTOM = 32
+  public static readonly SUNK_RIGHT = 64
 
   public static readonly MAX_ROWS = 26
   public static readonly MAX_COLS = 26
@@ -31,7 +35,7 @@ export default class BattleshipGrid {
    * 0 = empty (no info)
    * 1 = sunk (sunken ship)
    * 2 = hit (un sunk ship)
-   * 3 = miss (water)
+   * 4 = miss (water)
    */
   #grid: number[][] = []
 
