@@ -237,8 +237,6 @@ function placeVertically(placeHorPositions: number, placeVerPositions: number): 
  * @returns The same boat, type-marked as placeable
  */
 function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
-  // if (!data.allowTouching) Should fail if boat is placed next to but not on a HIT clue
-
   let row = boat.row
   let col = boat.col
 
@@ -251,7 +249,7 @@ function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
   // Out of bounds
   if (row < 0 || col < 0 || endRow >= data.rows || endCol >= data.cols) return false
 
-  // Disallow placing the boat on another boat or on a (SUNK || MISS) clue
+  // Disallow placing the boat on another boat or on a MISS or SUNK clue
   for (let segment = 0; segment < boat.length; segment++) {
     if (grid[row][col] & missOrSunkFilter) return false
     row += dRow

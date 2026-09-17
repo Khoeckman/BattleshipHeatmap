@@ -72,6 +72,7 @@ export default class BattleshipIO {
   public heatmap: BattleshipHeatmap
 
   public cursor = { row: 0, col: 0 }
+  public sunkKeyDown = false
 
   #frameHandle = -1
   #lastFrameTs = 0
@@ -125,11 +126,9 @@ export default class BattleshipIO {
       onFinishGenerating
     )
 
-    this.#handleClick.bind(this)
-    this.#handleKeyDown.bind(this)
-
     gridEl.addEventListener('click', this.#handleClick.bind(this))
-    window.addEventListener('keydown', this.#handleKeyDown.bind(this))
+    window.addEventListener('keydown', this.#handleKeyboardEvent.bind(this))
+    window.addEventListener('keyup', this.#handleKeyboardEvent.bind(this))
 
     this.renderGrid()
   }
@@ -450,12 +449,37 @@ export default class BattleshipIO {
     this.setCursor(+target.dataset.row!, +target.dataset.col!)
   }
 
-  #handleKeyDown(e: KeyboardEvent): void {
+  #handleKeyboardEvent(e: KeyboardEvent): void {
+    if (e.key === 's') this.sunkKeyDown = e.type === 'keydown'
     if (document.activeElement !== document.body) return
-
     if (e.ctrlKey || e.altKey || e.shiftKey) return
 
     let preventDefault = true
+
+    if (this.sunkKeyDown) {
+      switch (e.key) {
+        case 'ArrowUp':
+          this.moveCursor(-1, 0)
+          break
+        case 'ArrowRight':
+          this.moveCursor(0, 1)
+          break
+        case 'ArrowLeft':
+          this.moveCursor(0, -1)
+          break
+        case 'ArrowDown':
+          this.moveCursor(1, 0)
+          break
+        default:
+          preventDefault = false
+      }
+    }
+
+    if (preventDefault) {
+      e.preventDefault()
+      return
+    }
+    preventDefault = true
 
     switch (e.key) {
       case 'ArrowUp':
