@@ -20,16 +20,16 @@ type HeatCache = {
 export default class BattleshipIO {
   private static CLUE_CLASSNAME: { [key: number]: string } = {
     0: 'empty',
-    1: 'sunk',
+    1: 'miss',
     2: 'hit',
-    4: 'miss',
+    4: 'sunk',
   }
 
   private static CLUE_SYMBOL: { [key: number]: string } = {
     0: '~',
-    1: 'S',
+    1: '~',
     2: 'H',
-    4: '~',
+    4: 'S',
   }
 
   private static BOAT_NAME: { [key: number]: string } = {
@@ -201,9 +201,9 @@ export default class BattleshipIO {
 
       for (let col = 0; col < this.heatmap.cols; col++) {
         const cellEl = document.createElement('div')
-        const cellValue = BattleshipIO.CLUE_CLASSNAME[this.heatmap.getCell(row, col)]
+        const cellValue = BattleshipIO.CLUE_CLASSNAME[Math.min(this.heatmap.getCell(row, col), BattleshipGrid.SUNK)]
 
-        cellEl.textContent = BattleshipIO.CLUE_SYMBOL[this.heatmap.getCell(row, col)]
+        cellEl.textContent = BattleshipIO.CLUE_SYMBOL[Math.min(this.heatmap.getCell(row, col), BattleshipGrid.SUNK)]
         cellEl.classList.add('cell', cellValue)
         cellEl.dataset.row = String(row)
         cellEl.dataset.col = String(col)
@@ -372,8 +372,8 @@ export default class BattleshipIO {
   }
 
   setCursorCell(value: number): void {
-    if (!(value === 0 || value === 1 || value === 2 || value === 4)) {
-      throw new RangeError('value must be: 0, 1, 2 or 4')
+    if (Math.log2(value) !== ~~Math.log2(value)) {
+      throw new RangeError('value must be a power of 2')
     }
 
     const { row, col } = this.cursor
@@ -451,6 +451,8 @@ export default class BattleshipIO {
 
   #handleKeyboardEvent(e: KeyboardEvent): void {
     if (e.key === 's') this.sunkKeyDown = e.type === 'keydown'
+    else if (e.type === 'keyup') return
+
     if (document.activeElement !== document.body) return
     if (e.ctrlKey || e.altKey || e.shiftKey) return
 
@@ -473,11 +475,11 @@ export default class BattleshipIO {
         default:
           preventDefault = false
       }
-    }
 
-    if (preventDefault) {
-      e.preventDefault()
-      return
+      if (preventDefault) {
+        e.preventDefault()
+        return
+      }
     }
     preventDefault = true
 
