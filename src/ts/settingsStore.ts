@@ -14,6 +14,6 @@ export const settingsStore = new HyperStorage<Settings>('battleship', {
   cols: 10,
   boats: [5, 4, 3, 3, 2],
   allowTouching: false,
-  generationSeconds: Math.round((0.5 + 16 / navigator.hardwareConcurrency) * 10) / 10,
+  generationSeconds: Math.round(Math.pow(64 / navigator.hardwareConcurrency, 0.85) * 2) / 2,
   grid: [],
 })
