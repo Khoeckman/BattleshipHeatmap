@@ -18,11 +18,15 @@ type HeatCache = {
 }
 
 export default class BattleshipIO {
-  private static CLUE_CLASSNAME: { [key: number]: string } = {
+  private static CLUE_NAME: { [key: number]: string } = {
     0: 'empty',
     1: 'miss',
     2: 'hit',
     4: 'sunk',
+    8: 'sunk bow-top',
+    16: 'sunk bow-right',
+    32: 'sunk bow-bottom',
+    64: 'sunk bow-left',
   }
 
   private static CLUE_SYMBOL: { [key: number]: string } = {
@@ -197,14 +201,15 @@ export default class BattleshipIO {
 
     for (let row = 0; row < this.heatmap.rows; row++) {
       const rowEl = document.createElement('div')
-      rowEl.classList.add('row')
+      rowEl.classList.value = 'row'
 
       for (let col = 0; col < this.heatmap.cols; col++) {
         const cellEl = document.createElement('div')
-        const cellValue = BattleshipIO.CLUE_CLASSNAME[Math.min(this.heatmap.getCell(row, col), BattleshipGrid.SUNK)]
+        const cellValue = this.heatmap.getCell(row, col)
+        const cellName = BattleshipIO.CLUE_NAME[cellValue]
 
-        cellEl.textContent = BattleshipIO.CLUE_SYMBOL[Math.min(this.heatmap.getCell(row, col), BattleshipGrid.SUNK)]
-        cellEl.classList.add('cell', cellValue)
+        cellEl.textContent = BattleshipIO.CLUE_SYMBOL[Math.min(cellValue, BattleshipGrid.SUNK)]
+        cellEl.classList.value = 'cell ' + cellName
         cellEl.dataset.row = String(row)
         cellEl.dataset.col = String(col)
 
@@ -261,7 +266,7 @@ export default class BattleshipIO {
     const { els: heatEls, state: heatCache } = this.#getHeatCache()
     let { min: minHeat, max: maxHeat } = this.heatmap.getHeatRange()
 
-    const hotspotMargin = 0.99
+    const hotspotMargin = 0.995
     let hotspots = this.heatmap.getHotspots(maxHeat * hotspotMargin)
 
     // Only highlight the single hottest spot if there are too many hotspots
@@ -372,7 +377,7 @@ export default class BattleshipIO {
   }
 
   setCursorCell(value: number): void {
-    if (Math.log2(value) !== ~~Math.log2(value)) {
+    if (Math.log2(value) !== Math.floor(Math.log2(value))) {
       throw new RangeError('value must be a power of 2')
     }
 

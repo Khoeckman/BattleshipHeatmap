@@ -12,11 +12,6 @@ type Grid = NonNullable<JobData['grid']>
 
 const clue = BattleshipHeatmap
 
-// Binairy flag filters
-const anySunkFilter = ~clue.SUNK + 1 // SUNK || SUNK_*
-const hitOrSunkFilter = clue.HIT | anySunkFilter
-const missOrSunkFilter = clue.MISS | anySunkFilter
-
 // SharedData
 let workerIndex: number
 let lock: MainWorkerLock
@@ -117,7 +112,7 @@ function generateConfig(grid: Grid): void {
     boatLengths[j] = temp
   }
 
-  nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
+  /* nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
     const { row: hitRow, col: hitCol } = hits[hitIndex]
 
     // Another boat is already placed over this HIT clue
@@ -150,7 +145,7 @@ function generateConfig(grid: Grid): void {
         continue nextHit
       }
     }
-  }
+  } */
 
   for (const boatLength of boatLengths) {
     if (!boatLength) continue
@@ -251,7 +246,7 @@ function canPlaceBoat(grid: Grid, boat: Boat): boat is PlaceableBoat {
 
   // Disallow placing the boat on another boat or on a MISS or SUNK clue
   for (let segment = 0; segment < boat.length; segment++) {
-    if (grid[row][col] & missOrSunkFilter) return false
+    if (grid[row][col] & clue.missOrSunkFilter) return false
     row += dRow
     col += dCol
   }
@@ -296,7 +291,7 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
     for (let c = minCol; c <= maxCol; c++) {
       if (isBoatSegment(r, c)) {
         if (isAllHit && grid[r][c] !== clue.HIT) isAllHit = false
-      } else if (grid[r][c] & hitOrSunkFilter) {
+      } else if (grid[r][c] & clue.hitOrSunkFilter) {
         return false
       }
     }

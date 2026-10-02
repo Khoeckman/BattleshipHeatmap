@@ -126,19 +126,19 @@
       border-radius: 50%;
     }
 
-    &.bow-n {
+    &.bow-top {
       border-radius: 50% 50% 0 0;
     }
 
-    &.bow-e {
+    &.bow-right {
       border-radius: 0 50% 50% 0;
     }
 
-    &.bow-s {
+    &.bow-bottom {
       border-radius: 0 0 50% 50%;
     }
 
-    &.bow-w {
+    &.bow-left {
       border-radius: 50% 0 0 50%;
     }
   }

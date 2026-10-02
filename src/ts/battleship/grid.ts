@@ -16,6 +16,11 @@ export default class BattleshipGrid {
   public static readonly MAX_COLS = 26
   public static readonly MAX_LENGTH = Math.max(this.MAX_ROWS, this.MAX_COLS)
 
+  // Binairy flag filters
+  public static readonly anySunkFilter = ~BattleshipGrid.SUNK + 1 // SUNK || SUNK_*
+  public static readonly hitOrSunkFilter = BattleshipGrid.HIT | BattleshipGrid.anySunkFilter
+  public static readonly missOrSunkFilter = BattleshipGrid.MISS | BattleshipGrid.anySunkFilter
+
   #rows = 0
   #cols = 0
   #boatLengths: number[] = []
@@ -113,9 +118,9 @@ export default class BattleshipGrid {
   set grid(value: number[][]) {
     if (
       !Array.isArray(value) ||
-      !value.every((row) => row.every((cell) => cell === 0 || cell === 1 || cell === 2 || cell === 4))
+      !value.every((row) => row.every((cell) => Math.log2(cell) === Math.floor(Math.log2(cell))))
     ) {
-      throw new TypeError('grid must be a two-dimensional array with values: 0, 1, 2 or 4')
+      throw new TypeError('grid must be a two-dimensional array where each value must be a power of 2')
     }
     if (value.length !== this.#rows || !value.every((row) => row.length === this.#cols)) {
       throw new RangeError('grid dimensions must match rows and cols')
