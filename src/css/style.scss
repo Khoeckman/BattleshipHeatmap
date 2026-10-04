@@ -1,12 +1,12 @@
 @use 'mixins.scss' as *;
 
+@use 'helper/helper.scss';
+@use 'helper/credits.scss';
 @use 'helper/fancyLink.scss';
 
 @use 'main/main.scss';
 @use 'main/fleet.scss';
 @use 'main/grid.scss';
-
-@use 'credits.scss';
 
 :root {
   --black: hsl(var(--hue), 20%, 8%);
@@ -41,7 +41,7 @@
     --bg: var(--black);
     --fg: var(--white);
 
-    --pri-bg: #00111f;
+    --pri-bg: hsl(var(--hue), 100%, 6%);
 
     --sunk-bg: hsl(0, 100%, 10%);
     --miss-bg: var(--pri-bg);
@@ -59,7 +59,8 @@
   color-scheme: light dark;
 }
 
-html {
+html,
+dialog {
   scroll-behavior: smooth;
   background-color: var(--bg);
   font-family:
