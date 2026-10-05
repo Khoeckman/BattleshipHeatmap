@@ -6,6 +6,8 @@ import { resolve } from 'path'
 export default defineConfig({
   root: 'src',
   publicDir: '../public',
+  base: './',
+  
   build: {
     target: 'esnext',
     outDir: '../docs',
@@ -15,6 +17,7 @@ export default defineConfig({
       },
     },
   },
+  
   server: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin',
