@@ -112,7 +112,7 @@ function generateConfig(grid: Grid): void {
     boatLengths[j] = temp
   }
 
-  /* nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
+  /*nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
     const { row: hitRow, col: hitCol } = hits[hitIndex]
 
     // Another boat is already placed over this HIT clue
@@ -145,7 +145,7 @@ function generateConfig(grid: Grid): void {
         continue nextHit
       }
     }
-  } */
+  }*/
 
   for (const boatLength of boatLengths) {
     if (!boatLength) continue
@@ -163,7 +163,7 @@ function generateConfig(grid: Grid): void {
     // TODO: strongly reduce boatPlaceAttempts heuristic and if !boatPlaced, use 2d loop to try every position sequentially (although pick a random start point)
     // boatPlaceAttempts should also include the total amount of boat cells to determine the heuristic,
     // more boats = less chance of finding an empty spot by chance
-    // first boat = 100% chance of finding an empty spot by chance on the first try
+    // first boat = 100% chance of finding an empty spot by chance on the first try, minus the amount of SUNK and MISS clues that are already placed
     // last boat = possibly no empty spots left due to an inefficient configuration of the other boats
     for (let attempt = 0; attempt < boatPlaceAttempts; attempt++) {
       const vertical = placeVertically(placeHorCells, placeVerCells)
@@ -297,7 +297,7 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
     }
   }
 
-  // The boat should either be marked as SUNK or is too short
+  // The boat is too short or should have been marked as SUNK
   if (isAllHit) return false
 
   for (let r = minRow; r <= maxRow; r++) {
