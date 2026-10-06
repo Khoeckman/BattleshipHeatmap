@@ -134,6 +134,8 @@ export default class BattleshipIO {
     window.addEventListener('keydown', this.#handleKeyboardEvent.bind(this))
     window.addEventListener('keyup', this.#handleKeyboardEvent.bind(this))
 
+    // Turn off skeleton styles
+    this.gridEl.hidden = false
     this.renderGrid()
   }
 

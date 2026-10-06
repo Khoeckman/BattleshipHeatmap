@@ -38,3 +38,8 @@
   -ms-user-select: none;
   user-select: none;
 }
+
+*[hidden],
+.hidden {
+  visibility: hidden;
+}

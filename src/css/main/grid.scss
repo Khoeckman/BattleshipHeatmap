@@ -8,7 +8,10 @@
   margin: 0 auto;
   padding: 0.5rem;
   width: fit-content;
-  min-height: 3.625rem;
+
+  &[hidden] {
+    min-height: 28.375rem;
+  }
 
   &,
   .row {
