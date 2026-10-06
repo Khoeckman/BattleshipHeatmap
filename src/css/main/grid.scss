@@ -8,6 +8,7 @@
   margin: 0 auto;
   padding: 0.5rem;
   width: fit-content;
+  transition: 250ms height ease-in-out;
 
   &[hidden] {
     min-height: 28.375rem;

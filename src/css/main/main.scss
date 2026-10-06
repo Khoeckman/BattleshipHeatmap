@@ -193,6 +193,7 @@ main {
 
     li {
       flex: 1 0;
+      align-self: stretch;
 
       button {
         background-color: var(--l2);
@@ -201,6 +202,7 @@ main {
         color: var(--fg);
         width: 100%;
         min-width: 0;
+        height: 100%;
 
         &:hover,
         &:focus-visible {
