@@ -231,7 +231,11 @@ export default class BattleshipGrid {
         const valueAbove = row === 0 ? NaN : this.grid[row - 1][col]
         const valueBelow = row === this.rows - 1 ? NaN : this.grid[row + 1][col]
 
-        if (value === BattleshipGrid.SUNK && valueAbove !== BattleshipGrid.SUNK && valueBelow !== BattleshipGrid.SUNK) {
+        if (
+          value & BattleshipGrid.anySunkFilter &&
+          valueAbove & ~BattleshipGrid.anySunkFilter &&
+          valueBelow & ~BattleshipGrid.anySunkFilter
+        ) {
           if (!boat) boat = { length: 1, row, col, vertical: false }
           else boat.length++
 
@@ -259,7 +263,7 @@ export default class BattleshipGrid {
         // Check if this cell has already been used for a boat in the other orientation
         if (usedCells.has(row + ',' + col)) continue
 
-        if (value === BattleshipGrid.SUNK) {
+        if (value & BattleshipGrid.anySunkFilter) {
           if (!boat) boat = { length: 1, row, col, vertical: true }
           else boat.length++
         } else if (boat) {
