@@ -26,6 +26,7 @@ let data: JobData
 let workerDataOffset: number
 let heatmapOffset: number
 let boatLengths: Uint8Array
+let cells: number
 let grid: Grid
 let bitmap: Uint8Array
 
@@ -57,12 +58,13 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   data = e.data
   if (!data.grid) return
 
+  cells = data.rows * data.cols
   grid = data.grid.map((row) => new Uint8Array(row))
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
-  bitmap = new Uint8Array(data.rows * data.cols)
+  bitmap = new Uint8Array(cells)
 
-  boatPlaceAttempts = Math.sqrt(data.rows * data.cols) * 80
+  boatPlaceAttempts = Math.sqrt(cells) * 80
 
   for (const boat of data.boatsSunken) {
     // Remove sunken boats from boatLengths
@@ -112,6 +114,8 @@ function generateConfig(grid: Grid): void {
     boatLengths[j] = temp
   }
 
+  // Todo: with this heavy optimization algorithm, the result is not longer accurate/perfectly random because the hit clues receive a boat placed on them first
+  // Instead it should be perfectly random when a boat is placed on a hit clue or not.
   /*nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
     const { row: hitRow, col: hitCol } = hits[hitIndex]
 
@@ -210,7 +214,7 @@ function generateConfig(grid: Grid): void {
     workerData[workerDataOffset + ATTEMPTS]++
     workerData[workerDataOffset + SUCCESSES]++
 
-    for (let i = 0; i < data.rows * data.cols; i++) {
+    for (let i = 0; i < cells; i++) {
       if (bitmap[i]) heatmap[heatmapOffset + i]++
     }
   })
