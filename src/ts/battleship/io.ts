@@ -416,10 +416,6 @@ export default class BattleshipIO {
   async startGenerating(): Promise<void> {
     const largestDimension = Math.max(this.heatmap.rows, this.heatmap.cols)
 
-    if (this.heatmap.boatsSunken.length >= this.heatmap.boatLengths.length) {
-      window.alert('All the boats have sunk.')
-    }
-
     if (this.heatmap.boatLengths.some((boatLength) => boatLength > largestDimension)) {
       window.alert('The fleet contains a boat larger than the board.')
       return
@@ -432,6 +428,10 @@ export default class BattleshipIO {
         `More boats of length ${boat.length} are marked as sunken than exist on the board.\n${sunken} sunken > ${total} exist`
       )
       return
+    }
+
+    if (this.heatmap.boatsSunken.length >= this.heatmap.boatLengths.length) {
+      window.alert('All the boats have sunk.')
     }
 
     // Prevent creating multiple schedule loops in series
