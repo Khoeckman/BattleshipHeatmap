@@ -233,8 +233,8 @@ export default class BattleshipGrid {
 
         if (
           value & BattleshipGrid.anySunkFilter &&
-          valueAbove & ~BattleshipGrid.anySunkFilter &&
-          valueBelow & ~BattleshipGrid.anySunkFilter
+          !(valueAbove & BattleshipGrid.anySunkFilter) &&
+          !(valueBelow & BattleshipGrid.anySunkFilter)
         ) {
           if (!boat) boat = { length: 1, row, col, vertical: false }
           else boat.length++
