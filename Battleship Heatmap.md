@@ -46,7 +46,12 @@ OR the boats should be placed on the S's, whichever is more performant
 
 [V] Update generation algorithm: if 2 H's are next to eachother, it means there is a boat lying there which is at least 3 long, because if it were only 2 it should have been sunken already (marked with S's)
 
-[V] If you place 5 randomly spread H's for 5 total boats, the success chance plummets. Optimize by only trying to place boats through H's first.
+[X] If you place 5 randomly spread H's for 5 total boats, the success chance plummets. Optimize by only trying to place boats through H's first.
+REVERTED: destroyed perfectly random distribution
+
+[ ] Cache x amount of results in the worker before writing to the atomic buffers. This should improve performance by over +100% for CPU's with 16+ threads.
+
+[V] When generating 3 billion results, the hit chance numbers are still not symmetric, pointing to a cache invalidation issue on io.renderHeatmap().
 
 [ ] when allow touching is on, users must be able to mark the direction of each segment because logic alone cannot pinpoint what type of boats are laying in a 2x3 rectangle of H's (2x 3 long) or (3x 2 long).
 

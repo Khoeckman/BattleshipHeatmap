@@ -13,7 +13,7 @@ export type DataElements = {
 
 type HeatCache = {
   els: HTMLElement[][]
-  state: number[][]
+  state: string[][]
   hotspots: { row: number; col: number }[]
 }
 
@@ -248,7 +248,7 @@ export default class BattleshipIO {
     if (!this.heat.els.length) {
       const rows = [...this.gridEl.children] as HTMLElement[]
       this.heat.els = rows.map((rowEl) => [...rowEl.children] as HTMLElement[])
-      this.heat.state = this.heat.els.map((row) => row.map(() => 0))
+      this.heat.state = this.heat.els.map((row) => row.map(() => '0'))
     }
     return this.heat
   }
@@ -293,16 +293,15 @@ export default class BattleshipIO {
         const cellHeatCache = rowHeatCache[col]
         const isHotspot = checkHotspot(hotspots, row, col)
 
-        const heatDiff = Math.abs(heat - cellHeatCache)
-        const heatRatio = heat / cellHeatCache
+        const heatText = (heat * 100).toPrecision(3)
 
-        // Skip if heat value remained nearly the same
-        if (heatDiff < 0.0005 && heatRatio > 0.998 && heatRatio < 1.002) {
+        // Skip rendering cell if its heat value remained almost equal
+        if (heatText === cellHeatCache) {
           // The cache should be invalidated if the hotspot status changes
           if (isHotspot === checkHotspot(this.heat.hotspots, row, col)) continue
         }
         // Cache new heat value (invalidate cache)
-        rowHeatCache[col] = heat
+        rowHeatCache[col] = heatText
 
         const cellEl = rowEls[col]
         let cellElClassList = cellEl.classList.value
@@ -311,7 +310,7 @@ export default class BattleshipIO {
         if (!heat) {
           cellElClassList = isCursor ? 'cell cursor' : 'cell'
         } else {
-          cellEl.textContent = (heat * 100).toPrecision(3).slice(0, 4)
+          cellEl.textContent = heatText
           cellElClassList = 'cell heat'
 
           if (isCursor) cellElClassList += ' cursor'
