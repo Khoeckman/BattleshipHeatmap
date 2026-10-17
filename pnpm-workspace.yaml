@@ -2,3 +2,4 @@ allowBuilds:
   '@parcel/watcher': false
 minimumReleaseAgeExclude:
   - globals@17.12.0
+  - eslint@10.13.0
