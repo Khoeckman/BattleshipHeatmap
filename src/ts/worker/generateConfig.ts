@@ -30,10 +30,17 @@ let cells: number
 let grid: Grid
 let bitmap: Uint8Array
 
+// SnapshotData
+let attemptsBuffer = 0
+let successesBuffer = 0
+let heatmapBuffer: Uint32Array
+
 let boatPlaceAttempts: number
 let hits: { row: number; col: number }[]
 
 const scopedLock = (callback: () => void) => {
+  if (!data) return
+
   lock.lockWorker()
   try {
     if (Atomics.load(mainData, JOB_ID) !== data.id) return
@@ -43,8 +50,23 @@ const scopedLock = (callback: () => void) => {
   }
 }
 
+const flushBuffer = (): void => {
+  scopedLock(() => {
+    Atomics.add(workerData, workerDataOffset + ATTEMPTS, attemptsBuffer)
+    attemptsBuffer = 0
+
+    Atomics.add(workerData, workerDataOffset + SUCCESSES, successesBuffer)
+    successesBuffer = 0
+
+    for (let i = 0; i < cells; i++) {
+      Atomics.add(heatmap, heatmapOffset + i, heatmapBuffer[i])
+      heatmapBuffer[i] = 0
+    }
+  })
+}
+
 self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
-  if ('workerIndex' in e.data) {
+  if (e.data.type === 'shared') {
     workerIndex = e.data.workerIndex
     lock = MainWorkerLock.connect(e.data.lock)
     mainData = new Uint32Array(e.data.mainDataBuffer)
@@ -59,16 +81,18 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   if (!data.grid) return
 
   cells = data.rows * data.cols
-  grid = data.grid.map((row) => new Uint8Array(row))
+  grid = data.grid.map(row => new Uint8Array(row))
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
   bitmap = new Uint8Array(cells)
+
+  heatmapBuffer = new Uint32Array(cells)
 
   boatPlaceAttempts = Math.sqrt(cells) * 80
 
   for (const boat of data.boatsSunken) {
     // Remove sunken boats from boatLengths
-    const sameLengthBoatIndex = data.boatLengths.findIndex((boatLength) => boatLength === boat.length)
+    const sameLengthBoatIndex = data.boatLengths.findIndex(boatLength => boatLength === boat.length)
     data.boatLengths.splice(sameLengthBoatIndex, 1)
 
     // Surround sunken boats with MISS clues
@@ -88,11 +112,20 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   // If there are the same amount or more HIT clues than boat segments there are no solutions
   if (hits.length >= boatLengths.reduce((segments, length) => segments + length, 0)) return
 
+  let i = 0
+
   // Keep generating until the main thread increases JOB_ID
   while (Atomics.load(mainData, JOB_ID) === data.id) {
     for (let y = 0; y < data.grid.length; y++) grid[y].set(data.grid[y])
     generateConfig(grid)
+
+    // Throttle atomic writes
+    if (++i >= 5120) {
+      i = 0
+      flushBuffer()
+    }
   }
+  flushBuffer()
 }
 
 function generateConfig(grid: Grid): void {
@@ -192,7 +225,7 @@ function generateConfig(grid: Grid): void {
 
     if (!boatPlaced) {
       // Mission failed, we'll get 'em next time
-      scopedLock(() => workerData[workerDataOffset + ATTEMPTS]++)
+      attemptsBuffer++
       return
     }
   }
@@ -203,21 +236,19 @@ function generateConfig(grid: Grid): void {
     for (let c = 0; c < data.cols; c++, i++) {
       if (grid[r][c] === clue.HIT) {
         // Mission failed, we'll get 'em next time
-        scopedLock(() => workerData[workerDataOffset + ATTEMPTS]++)
+        attemptsBuffer++
         return
       }
     }
   }
 
   // Successful configuration found
-  scopedLock(() => {
-    workerData[workerDataOffset + ATTEMPTS]++
-    workerData[workerDataOffset + SUCCESSES]++
+  attemptsBuffer++
+  successesBuffer++
 
-    for (let i = 0; i < cells; i++) {
-      if (bitmap[i]) heatmap[heatmapOffset + i]++
-    }
-  })
+  for (let i = 0; i < cells; i++) {
+    if (bitmap[i]) heatmapBuffer[i]++
+  }
 }
 
 /**

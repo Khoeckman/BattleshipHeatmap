@@ -10,19 +10,20 @@
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .eslintignore",
     "format": "prettier --write src/"
   },
+  "dependencies": {
+    "hyperstorage-js": "^6.0.9"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.13.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.7",
     "globals": "^17.13.0",
+    "oxfmt": "^0.74.0",
     "prettier": "^3.9.10",
     "sass": "^1.105.2",
     "vite": "^8.3.4",
     "vite-plugin-eslint": "^1.8.1",
     "vite-plugin-stylelint": "^6.3.0"
-  },
-  "dependencies": {
-    "hyperstorage-js": "^6.0.9"
   }
 }
