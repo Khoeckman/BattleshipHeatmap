@@ -81,7 +81,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
   if (!data.grid) return
 
   cells = data.rows * data.cols
-  grid = data.grid.map(row => new Uint8Array(row))
+  grid = data.grid.map((row) => new Uint8Array(row))
   workerDataOffset = workerDataSegmentSize * workerIndex
   heatmapOffset = heatmapSegmentSize * workerIndex
   bitmap = new Uint8Array(cells)
@@ -92,7 +92,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
 
   for (const boat of data.boatsSunken) {
     // Remove sunken boats from boatLengths
-    const sameLengthBoatIndex = data.boatLengths.findIndex(boatLength => boatLength === boat.length)
+    const sameLengthBoatIndex = data.boatLengths.findIndex((boatLength) => boatLength === boat.length)
     data.boatLengths.splice(sameLengthBoatIndex, 1)
 
     // Surround sunken boats with MISS clues

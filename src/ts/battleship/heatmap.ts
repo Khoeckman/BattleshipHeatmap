@@ -80,7 +80,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     generationSeconds: number,
     onStartGenerating: () => void,
     onStopGenerating: () => void,
-    onFinishGenerating: () => void,
+    onFinishGenerating: () => void
   ) {
     if (!(grid instanceof BattleshipGrid)) {
       throw new TypeError('grid must be an instance of BattleshipGrid')
@@ -89,7 +89,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.onChange = () => (this.generating = false)
 
     this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
-    this.#heatmapLive = new Uint32Array(new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads))
+    this.#heatmapLive = new Uint32Array(
+      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
+    )
 
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
@@ -252,7 +254,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     super.resize(rows, cols)
 
     this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
-    this.#heatmapLive = new Uint32Array(new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads))
+    this.#heatmapLive = new Uint32Array(
+      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
+    )
 
     this.attempts = 0
     this.success = 0
@@ -293,7 +297,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         boatLengths: this.boatLengths,
         boatsSunken: this.boatsSunken,
         allowTouching: this.allowTouching,
-        grid: this.grid.map(row => Uint8Array.from(row)),
+        grid: this.grid.map((row) => Uint8Array.from(row)),
       }
     })
 

@@ -293,7 +293,7 @@ export default class BattleshipIO {
         const cellHeatCache = rowHeatCache[col]
         const isHotspot = checkHotspot(hotspots, row, col)
 
-        const heatText = (heat * 100).toPrecision(3)
+        const heatText = (heat * 100).toPrecision(3).slice(0, 4)
 
         // Skip rendering cell if its heat value remained almost equal
         if (heatText === cellHeatCache) {
