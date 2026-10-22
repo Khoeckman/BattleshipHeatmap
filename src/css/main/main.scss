@@ -174,15 +174,19 @@ main {
   }
 
   #input {
-    @include flex-center;
     @include list;
 
-    flex-flow: row wrap;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
     gap: 0.25rem;
     list-style-type: none;
     border-radius: 0.5rem;
     margin-block: 1rem 2rem;
     overflow: hidden;
+
+    @media (width < 45em) {
+      grid-template-columns: repeat(2, 1fr);
+    }
 
     li {
       flex: 1 0;
