@@ -459,7 +459,7 @@ export default class BattleshipIO {
     if (e.key === 's') this.sunkKeyDown = e.type === 'keydown'
     else if (e.type === 'keyup') return
 
-    if (document.activeElement !== document.body) return
+    if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'number') return
     if (e.ctrlKey || e.altKey || e.shiftKey) return
 
     let preventDefault = true
@@ -528,3 +528,4 @@ export default class BattleshipIO {
     if (preventDefault) e.preventDefault()
   }
 }
+
