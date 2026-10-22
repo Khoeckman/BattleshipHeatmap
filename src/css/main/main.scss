@@ -8,6 +8,7 @@ main {
       system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
       'Segoe UI Emoji';
     text-align: center;
+    white-space: nowrap;
     margin-top: 0;
     margin-inline: 4rem;
   }
@@ -242,7 +243,7 @@ main {
   }
 }
 
-@media (width < 20em) {
+@media (width < 25em) {
   main {
     h1 {
       margin-inline: 0;
