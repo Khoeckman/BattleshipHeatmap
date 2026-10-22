@@ -120,7 +120,7 @@ self.onmessage = function (e: MessageEvent<SharedData | JobData>) {
     generateConfig(grid)
 
     // Throttle atomic writes
-    if (++i >= 5120) {
+    if (++i >= 512) {
       i = 0
       flushBuffer()
     }
