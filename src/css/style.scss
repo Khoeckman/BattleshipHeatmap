@@ -9,15 +9,15 @@
 @use 'main/grid.scss';
 
 :root {
-  --black: hsl(var(--hue), 20%, 8%);
-  --white: hsl(var(--hue), 20%, 96%);
+  --black: hsl(var(--hue), 0%, 4%);
+  --white: hsl(var(--hue), 50%, 96%);
   --success: #3f3;
   --error: #f33;
 
   --bg: var(--white);
   --fg: var(--black);
 
-  --hue: 210;
+  --hue: 205;
   --pri: hsl(var(--hue), 100%, 62%);
   --pri-bg: #e2f2ff;
 
@@ -29,7 +29,7 @@
   --miss-bg: var(--pri-bg);
 
   --l0: #fff;
-  --l1: hsl(var(--hue), 20%, 87.5%);
+  --l1: hsl(var(--hue), 20%, 90%);
   --l2: hsl(var(--hue), 20%, 75%);
   --l4: hsl(var(--hue), 20%, 50%);
   --l6: hsl(var(--hue), 20%, 25%);
@@ -47,7 +47,7 @@
     --miss-bg: var(--pri-bg);
 
     --l0: #000;
-    --l1: hsl(var(--hue), 20%, 12.5%);
+    --l1: hsl(var(--hue), 20%, 10%);
     --l2: hsl(var(--hue), 20%, 25%);
     --l4: hsl(var(--hue), 20%, 50%);
     --l6: hsl(var(--hue), 20%, 75%);
