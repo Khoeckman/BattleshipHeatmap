@@ -457,26 +457,26 @@ export default class BattleshipIO {
 
   #handleKeyboardEvent(e: KeyboardEvent): void {
     if (e.key === 's') this.sunkKeyDown = e.type === 'keydown'
-    else if (e.type === 'keyup') return
 
-    if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'number') return
+    if (e.type === 'keyup') return
     if (e.ctrlKey || e.altKey || e.shiftKey) return
+    if (document.activeElement instanceof HTMLInputElement) return
 
     let preventDefault = true
 
     if (this.sunkKeyDown) {
       switch (e.key) {
         case 'ArrowUp':
-          this.moveCursor(-1, 0)
+          this.setCursorCell(BattleshipHeatmap.SUNK_BOTTOM)
           break
         case 'ArrowRight':
-          this.moveCursor(0, 1)
+          this.setCursorCell(BattleshipHeatmap.SUNK_LEFT)
           break
         case 'ArrowLeft':
-          this.moveCursor(0, -1)
+          this.setCursorCell(BattleshipHeatmap.SUNK_RIGHT)
           break
         case 'ArrowDown':
-          this.moveCursor(1, 0)
+          this.setCursorCell(BattleshipHeatmap.SUNK_TOP)
           break
         default:
           preventDefault = false
@@ -528,4 +528,3 @@ export default class BattleshipIO {
     if (preventDefault) e.preventDefault()
   }
 }
-
