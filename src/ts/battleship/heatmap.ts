@@ -179,6 +179,8 @@ export default class BattleshipHeatmap extends BattleshipGrid {
           }
         }
       })
+
+      // console.log(this.#workerData[ATTEMPTS], this.#workerData[SUCCESSES], this.#heatmap)
     })
   }
 
