@@ -7,19 +7,18 @@ export default class BattleshipGrid {
   public static readonly MISS = 1
   public static readonly HIT = 2
   public static readonly SUNK = 4
-  public static readonly SUNK_TOP = 8
-  public static readonly SUNK_LEFT = 16
-  public static readonly SUNK_BOTTOM = 32
-  public static readonly SUNK_RIGHT = 64
+  public static readonly SUNK_TOP = 8 | BattleshipGrid.SUNK
+  public static readonly SUNK_LEFT = 16 | BattleshipGrid.SUNK
+  public static readonly SUNK_BOTTOM = 32 | BattleshipGrid.SUNK
+  public static readonly SUNK_RIGHT = 64 | BattleshipGrid.SUNK
 
   public static readonly MAX_ROWS = 26
   public static readonly MAX_COLS = 26
   public static readonly MAX_LENGTH = Math.max(this.MAX_ROWS, this.MAX_COLS)
 
   // Binairy flag filters
-  public static readonly anySunkFilter = ~BattleshipGrid.SUNK + 1 // SUNK || SUNK_*
-  public static readonly hitOrSunkFilter = BattleshipGrid.HIT | BattleshipGrid.anySunkFilter
-  public static readonly missOrSunkFilter = BattleshipGrid.MISS | BattleshipGrid.anySunkFilter
+  public static readonly hitOrSunkFilter = BattleshipGrid.HIT | BattleshipGrid.SUNK
+  public static readonly missOrSunkFilter = BattleshipGrid.MISS | BattleshipGrid.SUNK
 
   #rows = 0
   #cols = 0
@@ -231,11 +230,7 @@ export default class BattleshipGrid {
         const valueAbove = row === 0 ? NaN : this.grid[row - 1][col]
         const valueBelow = row === this.rows - 1 ? NaN : this.grid[row + 1][col]
 
-        if (
-          value & BattleshipGrid.anySunkFilter &&
-          !(valueAbove & BattleshipGrid.anySunkFilter) &&
-          !(valueBelow & BattleshipGrid.anySunkFilter)
-        ) {
+        if (value & BattleshipGrid.SUNK && !(valueAbove & BattleshipGrid.SUNK) && !(valueBelow & BattleshipGrid.SUNK)) {
           if (!boat) boat = { length: 1, row, col, vertical: false }
           else boat.length++
 
@@ -263,7 +258,7 @@ export default class BattleshipGrid {
         // Check if this cell has already been used for a boat in the other orientation
         if (usedCells.has(row + ',' + col)) continue
 
-        if (value & BattleshipGrid.anySunkFilter) {
+        if (value & BattleshipGrid.SUNK) {
           if (!boat) boat = { length: 1, row, col, vertical: true }
           else boat.length++
         } else if (boat) {
