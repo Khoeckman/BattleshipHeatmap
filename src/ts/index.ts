@@ -47,6 +47,11 @@ try {
   io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
 }
 
+// Hide buttons only for allow-touching
+inputButtons.forEach((button) => {
+  if (button.classList.contains('allow-touching')) button.hidden = !io.heatmap.allowTouching
+})
+
 // Settings form
 rowsInput.addEventListener('change', handleDimension)
 colsInput.addEventListener('change', handleDimension)
@@ -99,6 +104,10 @@ parseBoatLengths.call(boatsInput)
 
 allowTouchingCheckbox.addEventListener('change', function () {
   io.setAllowTouching(this.checked)
+
+  inputButtons.forEach((button) => {
+    if (button.classList.contains('allow-touching')) button.hidden = !io.heatmap.allowTouching
+  })
 })
 
 generationSecondsInput.addEventListener('change', function () {

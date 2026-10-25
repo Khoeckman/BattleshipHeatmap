@@ -382,6 +382,10 @@ export default class BattleshipIO {
       throw new RangeError('value must be a power of 2')
     }
 
+    if ((!this.heatmap.allowTouching && value > 4) || value > 64) {
+      throw new RangeError('value too large')
+    }
+
     const { row, col } = this.cursor
 
     if (this.heatmap.getCell(row, col) === value) return
@@ -464,7 +468,7 @@ export default class BattleshipIO {
 
     let preventDefault = true
 
-    if (this.sunkKeyDown) {
+    if (this.sunkKeyDown && this.heatmap.allowTouching) {
       switch (e.key) {
         case 'ArrowUp':
           this.setCursorCell(BattleshipHeatmap.SUNK_BOTTOM)
