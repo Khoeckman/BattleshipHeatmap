@@ -35,10 +35,16 @@ main {
 
   label:has(> input[type='checkbox']) {
     display: flex;
+    align-items: flex-start;
     gap: 0.5rem;
     margin-bottom: 0;
     padding: 1rem;
     width: fit-content;
+    transition: transform 125ms ease-out;
+
+    &:active {
+      transform: scale(0.95);
+    }
 
     input {
       order: -1;
@@ -161,12 +167,6 @@ main {
         line-height: 2.25;
       }
     }
-  }
-
-  div:has(> #allowTouching) {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
   }
 
   .actions {
