@@ -24,12 +24,11 @@ export type JobData = {
   grid?: Uint8Array[]
 }
 
-export const scopedLock = async (lock: MainWorkerLock, callback: () => void): Promise<void> => {
-  await lock
+export const scopedLock = (lock: MainWorkerLock, callback: () => void): Promise<void> =>
+  lock
     .lockMain()
     .then(() => callback())
     .finally(() => lock.unlockMain())
-}
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   #threads = Math.max(1, navigator.hardwareConcurrency - 1)
@@ -173,9 +172,10 @@ export default class BattleshipHeatmap extends BattleshipGrid {
         this.#workerData[ATTEMPTS] += this.#workerDataLive[workerDataOffset + ATTEMPTS]
         this.#workerData[SUCCESSES] += this.#workerDataLive[workerDataOffset + SUCCESSES]
 
+        let i = 0
         for (let row = 0; row < this.rows; row++) {
-          for (let col = 0; col < this.cols; col++) {
-            this.#heatmap[row][col] += this.#heatmapLive[heatmapOffset + row * this.cols + col]
+          for (let col = 0; col < this.cols; col++, i++) {
+            this.#heatmap[row][col] += this.#heatmapLive[heatmapOffset + i]
           }
         }
       })

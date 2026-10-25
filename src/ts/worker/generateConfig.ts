@@ -149,7 +149,7 @@ function generateConfig(grid: Grid): void {
 
   // Todo: with this heavy optimization algorithm, the result is not longer accurate/perfectly random because the hit clues receive a boat placed on them first
   // Instead it should be perfectly random when a boat is placed on a hit clue or not.
-  /*nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
+  nextHit: for (let hitIndex = 0; hitIndex < hits.length; hitIndex++) {
     const { row: hitRow, col: hitCol } = hits[hitIndex]
 
     // Another boat is already placed over this HIT clue
@@ -182,7 +182,7 @@ function generateConfig(grid: Grid): void {
         continue nextHit
       }
     }
-  }*/
+  }
 
   for (const boatLength of boatLengths) {
     if (!boatLength) continue
@@ -302,7 +302,6 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
     return true
   }
 
-  // Surround boat with water
   let endRow = boat.row
   let endCol = boat.col
 
@@ -342,6 +341,7 @@ function placeBoat(grid: Grid, bitmap: Uint8Array, boat: PlaceableBoat): boolean
         grid[r][c] = clue.SUNK
         continue
       }
+      // Surround boat with water
       grid[r][c] = clue.MISS
     }
   }

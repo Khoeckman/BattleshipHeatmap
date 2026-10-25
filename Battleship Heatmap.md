@@ -49,11 +49,18 @@ OR the boats should be placed on the S's, whichever is more performant
 [X] If you place 5 randomly spread H's for 5 total boats, the success chance plummets. Optimize by only trying to place boats through H's first.
 REVERTED: destroyed perfectly random distribution
 
-[ ] Cache x amount of results in the worker before writing to the atomic buffers. This should improve performance by over +100% for CPU's with 16+ threads.
+[V] Cache x amount of results in the worker before writing to the atomic buffers. This should improve performance by over +100% for CPU's with 16+ threads.
 
 [V] When generating 3 billion results, the hit chance numbers are still not symmetric, pointing to a cache invalidation issue on io.renderHeatmap().
 
-[ ] when allow touching is on, users must be able to mark the direction of each segment because logic alone cannot pinpoint what type of boats are laying in a 2x3 rectangle of H's (2x 3 long) or (3x 2 long).
+[V] when allow touching is on, users must be able to mark the direction of each segment because logic alone cannot pinpoint what type of boats are laying in a 2x3 rectangle of H's (2x 3 long) or (3x 2 long).
+
+[ ] When a boat has 100% chance it sometimes shows as 99.8%
+ATTEMPTS: 3225320 SUCCESSES: 3225320 HEATMAP ACCUMULATOR: 3219456 (third is not equal to first and second)
+
+[ ] Convert directional SUNK clues to normal ones if touching is off and generation is started
+
+[ ] Actually use directional clues to determine boat placement and what boats are sunk
 
 [ ] add a place with information such as keyboard controls (put it in the grid wrapper top left, make mobile friendly)
 
