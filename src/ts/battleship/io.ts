@@ -18,7 +18,7 @@ type HeatCache = {
 }
 
 export default class BattleshipIO {
-  private static CLUE_NAME: { [key: number]: string } = {
+  private static CLUE_CLASSNAME: { [key: number]: string } = {
     0: 'empty',
     1: 'miss',
     2: 'hit',
@@ -34,13 +34,6 @@ export default class BattleshipIO {
     1: '~',
     2: 'H',
     4: 'S',
-  }
-
-  private static BOAT_NAME: { [key: number]: string } = {
-    2: 'Destroyer',
-    3: 'Cruiser',
-    4: 'Battleship',
-    5: 'Carrier',
   }
 
   private static secondFormat = Intl.NumberFormat(navigator.language, {
@@ -145,8 +138,6 @@ export default class BattleshipIO {
     for (let boatLength of this.heatmap.boatLengths) {
       const boatEl = document.createElement('li')
 
-      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
-
       for (let segment = 0; segment < boatLength; segment++) {
         const segmentEl = document.createElement('div')
         boatEl.appendChild(segmentEl)
@@ -173,8 +164,6 @@ export default class BattleshipIO {
         continue
       }
       boatEl.classList.value = 'sunk'
-
-      if (boatLength >= 2 && boatLength <= 5) boatEl.title = BattleshipIO.BOAT_NAME[boatLength] || 'Boat'
 
       boatsSunkenSizes.splice(
         boatsSunkenSizes.findIndex((b) => b === boatLength),
@@ -208,7 +197,7 @@ export default class BattleshipIO {
       for (let col = 0; col < this.heatmap.cols; col++) {
         const cellEl = document.createElement('div')
         const cellValue = this.heatmap.getCell(row, col)
-        const cellName = BattleshipIO.CLUE_NAME[cellValue]
+        const cellName = BattleshipIO.CLUE_CLASSNAME[cellValue]
 
         cellEl.textContent = BattleshipIO.CLUE_SYMBOL[Math.min(cellValue, BattleshipGrid.SUNK)]
         cellEl.classList.value = 'cell ' + cellName
