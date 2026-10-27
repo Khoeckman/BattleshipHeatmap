@@ -31,8 +31,13 @@ export const scopedLock = (lock: MainWorkerLock, callback: () => void): Promise<
     .finally(() => lock.unlockMain())
 
 export default class BattleshipHeatmap extends BattleshipGrid {
-  #threads = Math.max(1, navigator.hardwareConcurrency - 1)
+  // Number of worker threads to use for generating the heatmap.
+  #threads = navigator.hardwareConcurrency >= 8 ? navigator.hardwareConcurrency - 1 : navigator.hardwareConcurrency
+
+  // Array of worker threads for generating the heatmap.
   #workers: Worker[] = Array(this.#threads)
+
+  // Lock for synchronizing access to shared data between the main thread and workers.
   #lock = new MainWorkerLock()
 
   /**
