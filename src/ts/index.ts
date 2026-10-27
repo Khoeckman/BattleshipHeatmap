@@ -47,7 +47,7 @@ try {
   io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
 }
 
-// Hide buttons only for allow-touching
+// Display directional SUNK clue buttons only when allow-touching is enabled
 inputButtons.forEach((button) => {
   if (button.classList.contains('allow-touching')) button.hidden = !io.heatmap.allowTouching
 })
