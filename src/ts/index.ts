@@ -49,7 +49,7 @@ try {
 
 // Display directional SUNK clue buttons only when allow-touching is enabled
 inputButtons.forEach((button) => {
-  if (button.classList.contains('allow-touching')) button.hidden = !io.heatmap.allowTouching
+  if (button.classList.contains('allow-touching')) button.closest('li')!.hidden = !io.heatmap.allowTouching
 })
 
 // Settings form
@@ -106,7 +106,7 @@ allowTouchingCheckbox.addEventListener('change', function () {
   io.setAllowTouching(this.checked)
 
   inputButtons.forEach((button) => {
-    if (button.classList.contains('allow-touching')) button.hidden = !io.heatmap.allowTouching
+    if (button.classList.contains('allow-touching')) button.closest('li')!.hidden = !io.heatmap.allowTouching
   })
 })
 
