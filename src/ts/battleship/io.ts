@@ -118,6 +118,7 @@ export default class BattleshipIO {
     this.heatmap = new BattleshipHeatmap(
       grid,
       settings.generationSeconds,
+      settings.usedThreads,
       onStartGenerating,
       onStopGenerating,
       onFinishGenerating

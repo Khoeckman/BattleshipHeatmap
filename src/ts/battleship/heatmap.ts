@@ -32,10 +32,10 @@ export const scopedLock = (lock: MainWorkerLock, callback: () => void): Promise<
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   // Number of worker threads to use for generating the heatmap.
-  #threads = navigator.hardwareConcurrency >= 8 ? navigator.hardwareConcurrency - 1 : navigator.hardwareConcurrency
+  #threads!: number
 
   // Array of worker threads for generating the heatmap.
-  #workers: Worker[] = Array(this.#threads)
+  #workers!: Worker[]
 
   // Lock for synchronizing access to shared data between the main thread and workers.
   #lock = new MainWorkerLock()
@@ -45,7 +45,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    *
    * 0 Job ID - If this ID does not match the ID of the worker (anymore) it means it should stop generating and close.
    */
-  #mainDataLive = new Uint32Array(this.sab(1, Uint32Array))
+  #mainDataLive!: Uint32Array<SharedArrayBuffer>
 
   /**
    * Shared data from the workers to the main thread, separated per worker.
@@ -54,7 +54,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * 1 Successes - The number of valid configurations accumulated to produce the heatmap.
    */
   #workerDataSegmentSize = alignToCacheLine(2)
-  #workerDataLive = new Uint32Array(this.sab(2, Uint32Array))
+  #workerDataLive!: Uint32Array<SharedArrayBuffer>
   #workerData: number[] = []
 
   /**
@@ -64,7 +64,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * through that cell inside of a valid configuration.
    */
   #heatmapSegmentSize: number
-  #heatmapLive: Uint32Array<SharedArrayBuffer>
+  #heatmapLive!: Uint32Array<SharedArrayBuffer>
   #heatmap: number[][] = []
 
   #generating = false
@@ -82,6 +82,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
   constructor(
     grid: BattleshipGrid,
     generationSeconds: number,
+    threads: number,
     onStartGenerating: () => void,
     onStopGenerating: () => void,
     onFinishGenerating: () => void
@@ -93,14 +94,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.onChange = () => (this.generating = false)
 
     this.#heatmapSegmentSize = alignToCacheLine(this.rows * this.cols)
-    this.#heatmapLive = new Uint32Array(
-      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
-    )
 
     if (!Number.isFinite(generationSeconds)) {
       throw new TypeError('generationSeconds must be a finite number')
     }
     this.generationSeconds = generationSeconds
+
+    this.threads = threads
 
     if (typeof onStartGenerating !== 'function') {
       throw new TypeError('onStartCalculating must be a function')
@@ -116,7 +116,28 @@ export default class BattleshipHeatmap extends BattleshipGrid {
       throw new TypeError('onStopCalculating must be a function')
     }
     this.#onFinishGenerating = onFinishGenerating
+  }
 
+  get threads() {
+    return this.#threads
+  }
+
+  set threads(value) {
+    if (!Number.isInteger(value) || value < 1) {
+      throw new TypeError('threads must be a positive integer')
+    }
+    this.#threads = value
+
+    // Forcefully stop workers
+    if (this.#mainDataLive) Atomics.add(this.#mainDataLive, JOB_ID, 1)
+
+    this.#mainDataLive = new Uint32Array(this.sab(1, Uint32Array))
+    this.#workerDataLive = new Uint32Array(this.sab(2, Uint32Array))
+    this.#heatmapLive = new Uint32Array(
+      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
+    )
+
+    this.#workers = Array(this.#threads)
     this.#forEachThread(this.#createWorker)
     this.snapshot()
   }
@@ -269,7 +290,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.success = 0
     this.jobData = null
 
-    // Reference to this.#heatmapLive changed
+    // Share new reference to Uint32Array on this.#heatmapLive with all workers
     this.#forEachThread(this.#updateWorker)
   }
 
@@ -320,14 +341,24 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     this.#onStartGenerating()
   }
 
+  stopGeneratingNow() {
+    this.#generating = false
+    this.jobData = null
+
+    Atomics.add(this.#mainDataLive, JOB_ID, 1)
+    clearTimeout(this.generationTimeoutId)
+    this.#onStopGenerating()
+  }
+
   async stopGenerating() {
     this.#generating = false
     this.jobData = null
 
+    // Gracefully stop workers
     await scopedLock(this.#lock, () => {
-      // Stop workers
       Atomics.add(this.#mainDataLive, JOB_ID, 1)
     })
+
     clearTimeout(this.generationTimeoutId)
     this.#onStopGenerating()
   }

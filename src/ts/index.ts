@@ -12,6 +12,7 @@ const colsInput = document.getElementById('cols') as HTMLInputElement & { id: 'c
 const boatsInput = document.getElementById('boats') as HTMLInputElement
 const allowTouchingCheckbox = document.getElementById('allowTouching') as HTMLInputElement
 const generationSecondsInput = document.getElementById('generationSeconds') as HTMLInputElement
+const threadsInput = document.getElementById('threads') as HTMLInputElement
 
 const generateButton = document.getElementById('generate') as HTMLButtonElement
 const clearButton = document.getElementById('clear') as HTMLButtonElement
@@ -35,6 +36,8 @@ colsInput.valueAsNumber = settingsStore.value.cols
 boatsInput.value = settingsStore.value.boats.join(',')
 allowTouchingCheckbox.checked = settingsStore.value.allowTouching
 generationSecondsInput.valueAsNumber = settingsStore.value.generationSeconds
+threadsInput.valueAsNumber = settingsStore.value.usedThreads
+threadsInput.max = navigator.hardwareConcurrency.toString()
 
 // Setup data structure
 let io: BattleshipIO
@@ -111,13 +114,26 @@ allowTouchingCheckbox.addEventListener('change', function () {
 })
 
 generationSecondsInput.addEventListener('change', function () {
-  if (isNaN(this.valueAsNumber)) {
+  if (isNaN(this.valueAsNumber) || this.valueAsNumber < 0.1) {
     window.alert('Generation time must be a positive number')
     this.valueAsNumber = io.heatmap.generationSeconds
   }
-  this.valueAsNumber = Math.max(+this.min, this.valueAsNumber)
-  io.heatmap.generationSeconds = +this.valueAsNumber.toFixed(1)
+  this.valueAsNumber = +this.valueAsNumber.toFixed(1)
+  io.heatmap.generationSeconds = this.valueAsNumber
   io.settingsStore.set('generationSeconds', io.heatmap.generationSeconds)
+})
+
+threadsInput.addEventListener('change', function () {
+  if (
+    !Number.isInteger(this.valueAsNumber) ||
+    this.valueAsNumber < 1 ||
+    this.valueAsNumber > navigator.hardwareConcurrency
+  ) {
+    window.alert(`Threads must be an integer between 1 and ${navigator.hardwareConcurrency}`)
+    this.valueAsNumber = io.heatmap.threads
+  }
+  io.heatmap.threads = this.valueAsNumber
+  io.settingsStore.set('usedThreads', io.heatmap.threads)
 })
 
 settingsForm.addEventListener('submit', (e) => {
