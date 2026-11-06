@@ -17,57 +17,12 @@ export const alignToCacheLine = (elements: number, arrayConstructor?: { readonly
  */
 const WORKER_COUNT_MASK = 0x0000ffff
 const MAIN_COUNT_MASK = 0xffff0000
+
 const MAIN_COUNT_UNIT = 0x00010000
 
 /**
  * A main-worker lock for coordinating access to a `SharedArrayBuffer`.
- *
- * Compatibility matrix:
- * ```
- *           main    worker
- * main       ✓        ✗
- * worker     ✗        ✓
- * ```
- *
- * **Main mode:**
- * multiple call sites on main can lock it concurrently.
- *
- * **Worker mode:**
- * multiple workers can lock it concurrently.
- *
- * **Switch to main mode:**
- * if at least one call site of main is waiting to acquire the lock, no worker can acquire it anymore.
- * Once all workers have chosen to release it, main can claim it.
- * Waiting is done by calling `Atomics.waitSync` and awaiting the promise, this keeps the event loop operational.
- * The last worker releasing the lock calls `Atomics.notify`, resolving the promises on main.
- *
- * **Switch to worker mode:**
- * the worker waits to acquire the lock until all call sites of main have released it.
- * Waiting is done by calling `Atomics.wait` which makes the worker sleep.
- * The last call site on main releasing the lock calls `Atomics.notify`, waking up the waiting workers.
- *
- * `Atomics.waitAsync` requires a runtime not older than 2021:
- * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics/waitAsync#browser_compatibility
- *
- * @example
- * ```ts
- * // main thread
- * await lock.lockMain()
- * try {
- *   // Do main thread stuff...
- * } finally {
- *   lock.lockMain()
- * }
- *
- * // worker thread
- * lock.lockWorker()
- * try {
- *   // Do worker thread stuff...
- * } finally {
- *   lock.lockWorker()
- * }
- * ```
- *
+
  * @see {@link https://blogtitle.github.io/using-javascript-sharedarraybuffers-and-atomics/}
  * @see {@link https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Atomics/waitAsync}
  */
