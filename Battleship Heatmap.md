@@ -55,6 +55,10 @@ REVERTED: destroyed perfectly random distribution
 
 [V] when allow touching is on, users must be able to mark the direction of each segment because logic alone cannot pinpoint what type of boats are laying in a 2x3 rectangle of H's (2x 3 long) or (3x 2 long).
 
+[V] disable-hotspot-animation doesnt get removed when stopping the generation
+
+[V] When hovering over a hotspot with no animation, it becomes gray instead of staying green
+
 [ ] When a boat has 100% chance it sometimes shows as 99.8%
 ATTEMPTS: 3225320 SUCCESSES: 3225320 HEATMAP ACCUMULATOR: 3219456 (third is not equal to first and second)
 
