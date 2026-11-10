@@ -113,9 +113,7 @@ export default class BattleshipIO {
       this.updateGenerateButton()
       this.gridEl.classList.remove('disable-hotspot-animation')
     }
-    const onFinishGenerating = () => {
-      this.renderHeatmap()
-    }
+    const onFinishGenerating = () => this.renderHeatmap()
 
     this.heatmap = new BattleshipHeatmap(
       grid,
