@@ -17,13 +17,6 @@ main {
     margin-block: 2rem 0.5rem;
   }
 
-  hr {
-    height: 1px;
-    background-color: var(--bg);
-    font-size: 2rem;
-    border: 0;
-  }
-
   label {
     display: block;
     font-size: 0.8rem;
@@ -55,7 +48,7 @@ main {
     color: var(--fg);
   }
 
-  input:not([type='checkbox']) {
+  input:not([type='checkbox']):not([type='range']) {
     background-color: var(--bg);
     border: 1px solid var(--l1);
     border-radius: 0.5rem;
@@ -136,44 +129,50 @@ main {
     padding: 2rem;
   }
 
-  #generate {
-    min-width: 13rem;
-
-    &.start svg.stop {
-      display: none;
-    }
-
-    &.stop svg.start {
-      display: none;
-    }
+  form .field {
+    display: flex;
+    flex-flow: row wrap;
+    gap: 0.5rem;
   }
 
-  #settings {
+  form#settings {
     margin-bottom: 2rem;
-  }
 
-  #dimensions {
-    h3 {
-      margin-top: 0;
-    }
-
-    > div {
-      display: flex;
-      flex-flow: row wrap;
-      gap: 0.5rem;
+    section#dimensions {
+      h3 {
+        margin-top: 0;
+      }
 
       .multiply {
         align-self: flex-end;
         line-height: 2.25;
       }
     }
-  }
 
-  .actions {
-    display: flex;
-    flex-flow: row wrap;
-    gap: 1rem;
-    margin-top: 1rem;
+    section#performance {
+      > div:not(:first-of-type) {
+        margin-top: 1rem;
+      }
+    }
+
+    .actions {
+      display: flex;
+      flex-flow: row wrap;
+      gap: 1rem;
+      margin-top: 1rem;
+
+      button#generate {
+        min-width: 13rem;
+
+        &.start svg.stop {
+          display: none;
+        }
+
+        &.stop svg.start {
+          display: none;
+        }
+      }
+    }
   }
 
   #input {
@@ -252,7 +251,7 @@ main {
       margin-inline: 0;
     }
 
-    #dimensions > div {
+    section#dimensions .field {
       gap: 1rem;
 
       .multiply {
@@ -260,7 +259,7 @@ main {
       }
     }
 
-    #generate {
+    button#generate {
       min-width: unset;
     }
   }

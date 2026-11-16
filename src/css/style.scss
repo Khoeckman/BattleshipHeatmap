@@ -3,6 +3,7 @@
 @use 'helper/helper.scss';
 @use 'helper/credits.scss';
 @use 'helper/fancyLink.scss';
+@use 'helper/fancyRange.scss';
 
 @use 'main/main.scss';
 @use 'main/fleet.scss';
@@ -94,14 +95,14 @@ body {
   min-height: 100dvh;
 }
 
-main {
+body > main {
   flex: 1;
   margin-inline: auto;
   width: 100%;
   max-width: 60em;
 }
 
-footer {
+body > footer {
   border-top: 1px solid var(--l1);
   padding: 2rem;
 
@@ -115,8 +116,4 @@ footer {
       margin: 0;
     }
   }
-}
-
-a {
-  color: var(--pri);
 }

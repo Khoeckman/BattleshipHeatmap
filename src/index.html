@@ -16,7 +16,7 @@
   <link rel="icon" href="/favicon.avif" sizes="100x100" />
 
   <!-- Google Fonts: Montserrat -->
-  <link rel="preload" href="/fonts/montserrat.woff2" as="font" type="font/woff2" />
+  <link rel="preload" href="/fonts/montserrat.woff2" as="font" type="font/woff2" crossorigin />
 
   <!-- CSS -->
   <link href="css/normalize.css" rel="stylesheet" />
@@ -28,20 +28,6 @@
 </head>
 
 <body>
-  <header>
-    <div class="credits left">
-      <a href="https://kylecv.be">Kyle Hoeckman</a>
-      <div class="project">
-        <span class="name">Kyle Hoeckman</span>
-        <span class="date">July 2026</span>
-      </div>
-      <div class="logo" aria-hidden="true">
-        <img class="shadow" src="/KHKH.webp" alt="Shadow effect" />
-        <img src="/KHKH.webp" alt="Kyle Hoeckman Logo" />
-      </div>
-    </div>
-  </header>
-
   <main>
     <h1>Battleship Heatmap</h1>
 
@@ -51,7 +37,8 @@
 
         <section id="dimensions">
           <h3>Grid Size</h3>
-          <div>
+
+          <div class="field">
             <div>
               <label for="rows">Rows</label>
               <input type="number" id="rows" name="rows" min="1" max="26" value="10" />
@@ -66,30 +53,36 @@
 
         <section>
           <h3>Fleet</h3>
+
           <div>
             <label for="boats">Boat Lengths (comma or space separated)</label>
             <input type="text" id="boats" name="boats" placeholder="5,4,3,3,2" value="5,4,3,3,2" />
           </div>
           <ol id="fleet" class="wrapper" aria-hidden="true"></ol>
+
+          <label for="allowTouching" class="wrapper">Allow Boats to Touch
+            <input type="checkbox" id="allowTouching" name="allowTouching" />
+          </label>
         </section>
 
-        <hr />
+        <section id="performance">
+          <h3>Performance</h3>
 
-        <label for="allowTouching" class="wrapper">Allow Boats to Touch
-          <input type="checkbox" id="allowTouching" name="allowTouching" />
-        </label>
+          <div class="field">
+            <div>
+              <label for="generationSeconds">Generation time (seconds)</label>
+              <input type="number" id="generationSeconds" name="generationSeconds" min="0.1" value="1" step="0.1" />
+            </div>
 
-        <hr />
-
-        <div>
-          <label for="generationSeconds">Generation time (seconds)</label>
-          <input type="number" id="generationSeconds" name="generationSeconds" min="0.1" value="1" step="0.1" />
-        </div>
-
-        <div>
-          <label for="threads">Threads</label>
-          <input type="range" id="threads" name="threads" min="1" value="1" step="1" />
-        </div>
+            <div role="group" aria-labelledby="threadsLabel">
+              <label id="threadsLabel" for="threadsInput">Threads</label>
+              <div class="field">
+                <input type="number" id="threadsInput" name="threads" min="1" value="1" max="1" step="1" />
+                <input type="range" id="threadsRange" name="threads" min="1" value="1" max="1" step="1" />
+              </div>
+            </div>
+          </div>
+        </section>
 
         <div class="actions">
           <button type="submit" id="generate" class="start">
@@ -131,7 +124,7 @@
       </form>
 
       <div class="wrapper break-avoid">
-        <section id="grid" aria-live="off" hidden></section>
+        <section id="grid" aria-live="off" hidden tabindex="0"></section>
       </div>
 
       <ul id="input">
@@ -145,9 +138,9 @@
         <li hidden><button data-value="64" class="allow-touching">Sunk Left</button></li>
       </ul>
 
-      <section id="generation">
+      <section id="generation" aria-live="off">
         <h3>Generation Info</h3>
-        <dl aria-live="off">
+        <dl>
           <div class="wrapper">
             <dt>Threads</dt>
             <dd>0</dd>
@@ -171,6 +164,20 @@
       </section>
     </div>
   </main>
+
+  <aside>
+    <div class="credits left" aria-label="Credits">
+      <a href="https://kylecv.be">Kyle Hoeckman</a>
+      <div class="project">
+        <span class="name">Kyle Hoeckman</span>
+        <span class="date">July 2026</span>
+      </div>
+      <div class="logo" aria-hidden="true">
+        <img class="shadow" src="/KHKH.webp" alt="Shadow effect" />
+        <img src="/KHKH.webp" alt="Kyle Hoeckman Logo" />
+      </div>
+    </div>
+  </aside>
 
   <footer>
     <p>Copyright © <a href="https://kylecv.be" class="fancy">Kyle Hoeckman</a> 2026, All rights reserved.</p>
