@@ -86,6 +86,9 @@ export default class BattleshipIO {
     }
     this.settingsStore = settingsStore
 
+    // Load settings into data structure
+    const settings = this.settingsStore.value
+
     if (!(generateButton instanceof HTMLButtonElement)) {
       throw new TypeError('generateButton must be an instance of HTMLButtonElement')
     }
@@ -102,10 +105,8 @@ export default class BattleshipIO {
     this.fleetEl = fleetEl
 
     this.dataEls = dataEls
-    this.dataEls.threadsData.textContent = String(navigator.hardwareConcurrency)
+    this.dataEls.threadsData.textContent = String(settings.usedThreads)
 
-    // Load settings into data structure
-    const settings = this.settingsStore.value
     const grid = new BattleshipGrid(settings.rows, settings.cols, settings.boats, settings.allowTouching, settings.grid)
 
     const onStartGenerating = () => this.updateGenerateButton()

@@ -32,10 +32,10 @@ export const scopedLock = (lock: MainWorkerLock, callback: () => void): Promise<
 
 export default class BattleshipHeatmap extends BattleshipGrid {
   // Number of worker threads to use for generating the heatmap.
-  #threads!: number
+  #threads: number
 
   // Array of worker threads for generating the heatmap.
-  #workers!: Worker[]
+  #workers: Worker[]
 
   // Lock for synchronizing access to shared data between the main thread and workers.
   #lock = new MainWorkerLock()
@@ -45,7 +45,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    *
    * 0 Job ID - If this ID does not match the ID of the worker (anymore) it means it should stop generating and close.
    */
-  #mainDataLive!: Uint32Array<SharedArrayBuffer>
+  #mainDataLive: Uint32Array<SharedArrayBuffer>
 
   /**
    * Shared data from the workers to the main thread, separated per worker.
@@ -54,7 +54,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * 1 Successes - The number of valid configurations accumulated to produce the heatmap.
    */
   #workerDataSegmentSize = alignToCacheLine(2)
-  #workerDataLive!: Uint32Array<SharedArrayBuffer>
+  #workerDataLive: Uint32Array<SharedArrayBuffer>
   #workerData: number[] = []
 
   /**
@@ -64,13 +64,13 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * through that cell inside of a valid configuration.
    */
   #heatmapSegmentSize: number
-  #heatmapLive!: Uint32Array<SharedArrayBuffer>
+  #heatmapLive: Uint32Array<SharedArrayBuffer>
   #heatmap: number[][] = []
 
   #generating = false
-  public generationSeconds: number
-  public generationTimeoutId: number = -1
-  public generationStartTs: number = 0
+  public generationSeconds = 0
+  public generationTimeoutId = -1
+  public generationStartTs = 0
 
   /** Information about the current generation job to keep workers from reading too new data or writing outdated results. */
   public jobData: JobData | null = null
@@ -100,46 +100,37 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }
     this.generationSeconds = generationSeconds
 
-    this.threads = threads
+    if (!Number.isInteger(threads) || threads < 1) {
+      throw new TypeError('threads must be a positive integer')
+    }
+    this.#threads = threads
 
     if (typeof onStartGenerating !== 'function') {
-      throw new TypeError('onStartCalculating must be a function')
+      throw new TypeError('onStartGenerating must be a function')
     }
     this.#onStartGenerating = onStartGenerating
 
     if (typeof onStopGenerating !== 'function') {
-      throw new TypeError('onStopCalculating must be a function')
+      throw new TypeError('onStopGenerating must be a function')
     }
     this.#onStopGenerating = onStopGenerating
 
     if (typeof onFinishGenerating !== 'function') {
-      throw new TypeError('onStopCalculating must be a function')
+      throw new TypeError('onFinishGenerating must be a function')
     }
     this.#onFinishGenerating = onFinishGenerating
-  }
 
-  get threads() {
-    return this.#threads
-  }
-
-  set threads(value) {
-    if (!Number.isInteger(value) || value < 1) {
-      throw new TypeError('threads must be a positive integer')
-    }
-    this.#threads = value
-
-    // Forcefully stop workers
-    if (this.#mainDataLive) Atomics.add(this.#mainDataLive, JOB_ID, 1)
-
-    this.#mainDataLive = new Uint32Array(this.sab(1, Uint32Array))
-    this.#workerDataLive = new Uint32Array(this.sab(2, Uint32Array))
-    this.#heatmapLive = new Uint32Array(
-      new SharedArrayBuffer(this.#heatmapSegmentSize * Uint32Array.BYTES_PER_ELEMENT * this.#threads)
-    )
+    this.#mainDataLive = new Uint32Array(this.alignedSab(1, Uint32Array))
+    this.#workerDataLive = new Uint32Array(this.alignedSab(2, Uint32Array))
+    this.#heatmapLive = new Uint32Array(this.alignedSab(this.#heatmapSegmentSize, Uint32Array))
 
     this.#workers = Array(this.#threads)
     this.#forEachThread(this.#createWorker)
     this.snapshot()
+  }
+
+  get threads() {
+    return this.#threads
   }
 
   get generating() {
@@ -182,7 +173,7 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * @returns A SharedArrayBuffer that is aligned to the CPU's cache line size.
    * @throws {Error}
    */
-  sab(elements: number, arrayConstructor: { readonly BYTES_PER_ELEMENT: number }): SharedArrayBuffer {
+  alignedSab(elements: number, arrayConstructor: { readonly BYTES_PER_ELEMENT: number }): SharedArrayBuffer {
     return new SharedArrayBuffer(alignToCacheLine(elements, arrayConstructor) * this.#threads)
   }
 
@@ -336,15 +327,6 @@ export default class BattleshipHeatmap extends BattleshipGrid {
     }, this.generationSeconds * 1000)
 
     this.#onStartGenerating()
-  }
-
-  stopGeneratingNow() {
-    this.#generating = false
-    this.jobData = null
-
-    Atomics.add(this.#mainDataLive, JOB_ID, 1)
-    clearTimeout(this.generationTimeoutId)
-    this.#onStopGenerating()
   }
 
   async stopGenerating() {

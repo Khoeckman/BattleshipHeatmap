@@ -142,6 +142,8 @@ generationSecondsInput.addEventListener('change', function () {
   io.settingsStore.set('generationSeconds', io.heatmap.generationSeconds)
 })
 
+let reloadTimeoutId = -1
+
 threadsInput.addEventListener('change', function () {
   if (
     !Number.isInteger(this.valueAsNumber) ||
@@ -151,8 +153,20 @@ threadsInput.addEventListener('change', function () {
     window.alert(`Threads must be an integer between 1 and ${navigator.hardwareConcurrency}`)
     this.valueAsNumber = io.heatmap.threads
   }
-  io.heatmap.threads = this.valueAsNumber
-  io.settingsStore.set('usedThreads', io.heatmap.threads)
+  io.heatmap.generating = false
+  io.settingsStore.set('usedThreads', this.valueAsNumber)
+  threadsRange.valueAsNumber = this.valueAsNumber // Reactivity
+
+  clearTimeout(reloadTimeoutId)
+  reloadTimeoutId = setTimeout(() => window.location.reload(), 600)
+})
+
+threadsRange.addEventListener('input', function () {
+  threadsInput.valueAsNumber = this.valueAsNumber // Reactivity
+})
+
+threadsRange.addEventListener('change', () => {
+  threadsInput.dispatchEvent(new Event('change'))
 })
 
 settingsForm.addEventListener('submit', (e) => {
