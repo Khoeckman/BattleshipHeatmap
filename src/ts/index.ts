@@ -12,7 +12,8 @@ const colsInput = document.getElementById('cols') as HTMLInputElement & { id: 'c
 const boatsInput = document.getElementById('boats') as HTMLInputElement
 const allowTouchingCheckbox = document.getElementById('allowTouching') as HTMLInputElement
 const generationSecondsInput = document.getElementById('generationSeconds') as HTMLInputElement
-const threadsInput = document.getElementById('threads') as HTMLInputElement
+const threadsInput = document.getElementById('threadsInput') as HTMLInputElement
+const threadsRange = document.getElementById('threadsRange') as HTMLInputElement
 
 const generateButton = document.getElementById('generate') as HTMLButtonElement
 const clearButton = document.getElementById('clear') as HTMLButtonElement
@@ -36,8 +37,26 @@ colsInput.valueAsNumber = settingsStore.value.cols
 boatsInput.value = settingsStore.value.boats.join(',')
 allowTouchingCheckbox.checked = settingsStore.value.allowTouching
 generationSecondsInput.valueAsNumber = settingsStore.value.generationSeconds
+
+threadsInput.max = String(navigator.hardwareConcurrency)
+threadsRange.max = String(navigator.hardwareConcurrency)
+
 threadsInput.valueAsNumber = settingsStore.value.usedThreads
-threadsInput.max = navigator.hardwareConcurrency.toString()
+threadsRange.valueAsNumber = settingsStore.value.usedThreads
+
+// Update range progress bars
+const ranges = document.querySelectorAll('input[type="range"]') as NodeListOf<HTMLInputElement>
+
+ranges.forEach((range) => {
+  const update = () => {
+    const min = +range.min || 0
+    const max = +range.max || 100
+    const progress = ((range.valueAsNumber - min) / (max - min)) * 100
+    range.style.setProperty('--range-progress', `${progress}%`)
+  }
+  range.addEventListener('input', update)
+  update()
+})
 
 // Setup data structure
 let io: BattleshipIO

@@ -1,0 +1,50 @@
+input[type='range'] {
+  --range-progress: 0%;
+  --range-track: var(--l1);
+  --range-fill: var(--pri);
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  display: block;
+  background: linear-gradient(
+    to right,
+    var(--range-fill) 0%,
+    var(--range-fill) var(--range-progress),
+    var(--range-track) var(--range-progress),
+    var(--range-track) 100%
+  );
+  border: 1px solid var(--l1);
+  border-radius: 0.5rem;
+  margin: 0;
+  padding: 0;
+  min-width: 8rem;
+  width: 100%;
+  max-width: fit-content;
+  transition: 125ms filter;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: none;
+    width: 0;
+    height: 0;
+  }
+
+  &::-moz-range-thumb {
+    background: transparent;
+    border: none;
+    width: 0;
+    height: 0;
+  }
+
+  &::-moz-range-track {
+    background: transparent;
+    border: none;
+  }
+
+  &:not(:disabled):hover {
+    filter: brightness(1.15);
+  }
+}
