@@ -59,6 +59,8 @@ REVERTED: destroyed perfectly random distribution
 
 [V] When hovering over a hotspot with no animation, it becomes gray instead of staying green
 
+[ ] Sending a .click() to the form submit button does not start the generation process.
+
 [ ] When a boat has 100% chance it sometimes shows as 99.8%
 ATTEMPTS: 3225320 SUCCESSES: 3225320 HEATMAP ACCUMULATOR: 3219456 (third is not equal to first and second)
 
