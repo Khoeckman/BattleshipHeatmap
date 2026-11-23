@@ -132,6 +132,7 @@ export default class BattleshipIO {
     // Turn off skeleton styles
     this.gridEl.hidden = false
     this.renderGrid()
+    this.renderGenerationInfo(false)
   }
 
   renderFleet(): void {

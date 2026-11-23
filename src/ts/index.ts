@@ -201,5 +201,3 @@ resetButton.addEventListener('click', () => {
 inputButtons.forEach((button) => {
   button.addEventListener('click', () => io.setCursorCell(+button.dataset.value))
 })
-
-io.renderGenerationInfo(false)
