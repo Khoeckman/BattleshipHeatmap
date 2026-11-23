@@ -63,10 +63,19 @@ let io: BattleshipIO
 
 try {
   io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
+
+  // Test that the settings store is serializable
+  JSON.parse(JSON.stringify(settingsStore.value))
 } catch (err) {
-  window.alert(err instanceof Error ? err.message : err)
-  settingsStore.reset()
-  io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
+  const errMessage = err instanceof Error ? err.message : err
+  const message = `${errMessage}\n\nWould you like to reset your settings in an attempt to fix it?`
+
+  if (window.confirm(message)) {
+    settingsStore.reset()
+    io = new BattleshipIO(settingsStore, generateButton, gridEl, fleetEl, dataEls)
+  } else {
+    window.location.reload()
+  }
 }
 
 // Display directional SUNK clue buttons only when allow-touching is enabled
