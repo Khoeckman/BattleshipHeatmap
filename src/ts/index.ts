@@ -144,6 +144,11 @@ generationSecondsInput.addEventListener('change', function () {
 
 let reloadTimeoutId = -1
 
+threadsInput.addEventListener('input', function () {
+  threadsRange.valueAsNumber = this.valueAsNumber // Reactivity
+  threadsRange.dispatchEvent(new Event('input'))
+})
+
 threadsInput.addEventListener('change', function () {
   if (
     !Number.isInteger(this.valueAsNumber) ||
@@ -155,7 +160,6 @@ threadsInput.addEventListener('change', function () {
   }
   io.heatmap.generating = false
   io.settingsStore.set('usedThreads', this.valueAsNumber)
-  threadsRange.valueAsNumber = this.valueAsNumber // Reactivity
 
   clearTimeout(reloadTimeoutId)
   reloadTimeoutId = setTimeout(() => window.location.reload(), 600)
