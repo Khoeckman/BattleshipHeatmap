@@ -30,6 +30,8 @@ export const scopedLock = (lock: MainWorkerLock, callback: () => void): Promise<
     .then(() => callback())
     .finally(() => lock.unlockMain())
 
+const WORKER_DATA_ELEMENTS = 2
+
 export default class BattleshipHeatmap extends BattleshipGrid {
   // Number of worker threads to use for generating the heatmap.
   #threads: number
@@ -53,9 +55,9 @@ export default class BattleshipHeatmap extends BattleshipGrid {
    * 0 Attempts - The number of attempts to generate a valid configuration.
    * 1 Successes - The number of valid configurations accumulated to produce the heatmap.
    */
-  #workerDataSegmentSize = alignToCacheLine(2)
+  #workerDataSegmentSize = alignToCacheLine(WORKER_DATA_ELEMENTS)
   #workerDataLive: Uint32Array<SharedArrayBuffer>
-  #workerData: number[] = []
+  #workerData: number[] = Array(WORKER_DATA_ELEMENTS).fill(0)
 
   /**
    * Represents the heatmap grid for each worker.
