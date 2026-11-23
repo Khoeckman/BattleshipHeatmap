@@ -1,6 +1,6 @@
 input[type='range'] {
   --range-progress: 0%;
-  --range-track: var(--l1);
+  --range-track: var(--bg);
   --range-fill: var(--pri);
 
   appearance: none;
@@ -21,7 +21,6 @@ input[type='range'] {
   min-width: 8rem;
   width: 100%;
   max-width: fit-content;
-  transition: 125ms filter;
 
   &::-webkit-slider-thumb {
     appearance: none;
@@ -45,6 +44,6 @@ input[type='range'] {
   }
 
   &:not(:disabled):hover {
-    filter: brightness(1.15);
+    border-color: var(--l2);
   }
 }
