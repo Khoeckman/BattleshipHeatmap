@@ -1,4 +1,4 @@
-import { settingsStore } from './settingsStore'
+import { settingsStore } from './settings'
 import BattleshipIO from './battleship/io'
 
 const gridEl = document.getElementById('grid')!

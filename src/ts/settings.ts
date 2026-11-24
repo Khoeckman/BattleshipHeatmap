@@ -24,3 +24,12 @@ export const settingsStore = new HyperStorage<Settings>('battleship', {
   usedThreads,
   grid: [],
 })
+
+// Set default values for any missing settings
+if (!settingsStore.value.rows) settingsStore.value.rows = 10
+if (!settingsStore.value.cols) settingsStore.value.cols = 10
+if (!settingsStore.value.boats) settingsStore.value.boats = [5, 4, 3, 3, 2]
+if (!settingsStore.value.allowTouching) settingsStore.value.allowTouching = false
+if (!settingsStore.value.generationSeconds) settingsStore.value.generationSeconds = generationSeconds
+if (!settingsStore.value.usedThreads) settingsStore.value.usedThreads = usedThreads
+if (!settingsStore.value.grid) settingsStore.value.grid = []

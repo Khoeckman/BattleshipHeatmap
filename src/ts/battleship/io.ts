@@ -2,7 +2,7 @@ import HyperStorage from 'hyperstorage-js'
 
 import BattleshipGrid, { type BoatsTooManyError } from './grid'
 import BattleshipHeatmap from './heatmap'
-import type { Settings } from '../settingsStore'
+import type { Settings } from '../settings'
 
 export type DataElements = {
   threadsData: HTMLElement
