@@ -8,7 +8,7 @@
   margin: 0 auto;
   padding: 0.5rem;
   width: fit-content;
-  transition: 250ms height ease-in-out;
+  transition: height 250ms ease-in-out;
 
   &[hidden] {
     min-height: 28.375rem;
@@ -39,7 +39,9 @@
     position: relative;
     width: 2.5rem;
     height: 2.5rem;
-    transition: 125ms border-color ease-in;
+    transition:
+      border-color 125ms ease-in,
+      box-shadow 125ms ease-in;
 
     &:hover {
       background-color: var(--l1);
